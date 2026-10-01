@@ -96,6 +96,12 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-neutral-900 text-neutral-400 border border-neutral-800">
                 {formatLabel}
               </span>
+              {!canEdit && (
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/30 flex items-center gap-1">
+                  <Eye className="w-2.5 h-2.5" />
+                  <span>View Only</span>
+                </span>
+              )}
               <span className="text-neutral-600">·</span>
               <span>
                 Round {tournament.rounds.length > 0 ? tournament.rounds.length : 1}/{tournament.roundsTotal}

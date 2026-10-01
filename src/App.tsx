@@ -197,16 +197,25 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // Real-time live subscription to current tournament for participant live updates
+  // Real-time live subscription to current tournament
+  // Provides instantaneous updates across all participants and arbiters
   useEffect(() => {
     if (!tournament?.id) return;
     const unsub = subscribeToTournament(
       tournament.id,
       (updated) => {
-        // Only adopt changes from cloud if user is NOT currently in the middle of editing local changes
-        if (!canEdit || isParticipant) {
+        const cloudTime = updated.updatedAt || 0;
+        const localTime = tournament.updatedAt || 0;
+
+        // Spectators and other arbiters ALWAYS adopt real-time updates.
+        // Editors adopt if cloud is newer than local state.
+        if (!canEdit || isParticipant || cloudTime > localTime) {
           setTournament(updated);
-          if (updated.rounds.length > 0 && selectedRoundNumber > updated.rounds.length) {
+
+          // Auto-advance round viewer if a new round was paired or current round changed
+          if (updated.currentRoundNumber && updated.currentRoundNumber > selectedRoundNumber) {
+            setSelectedRoundNumber(updated.currentRoundNumber);
+          } else if (updated.rounds.length > 0 && selectedRoundNumber > updated.rounds.length) {
             setSelectedRoundNumber(updated.rounds.length);
           }
         }
@@ -214,7 +223,7 @@ export default function App() {
       (err) => console.warn('Live subscription notice:', err.message)
     );
     return () => unsub();
-  }, [tournament.id, canEdit, isParticipant]);
+  }, [tournament.id, canEdit, isParticipant, selectedRoundNumber, tournament.updatedAt]);
 
   // Save tournament to localStorage and Firestore (Only if user has edit permissions)
   useEffect(() => {
@@ -233,6 +242,7 @@ export default function App() {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
+      // Rapid 150ms debounce for near-instantaneous live Firestore updates
       saveTimeoutRef.current = setTimeout(async () => {
         try {
           setIsSyncing(true);
@@ -249,9 +259,9 @@ export default function App() {
         } catch (err) {
           console.error('Error syncing tournament to Firestore:', err);
         } finally {
-          setTimeout(() => setIsSyncing(false), 500);
+          setTimeout(() => setIsSyncing(false), 300);
         }
-      }, 600);
+      }, 150);
     }
 
     return () => {
@@ -572,6 +582,28 @@ export default function App() {
           localStorage.removeItem(PARTICIPANT_KEY);
         }}
       />
+
+      {/* Live Spectator / Read-Only Banner for other arbiters & participants */}
+      {!canEdit && (
+        <div className="bg-sky-500/10 border-b border-sky-500/20 py-2 px-4 flex items-center justify-between text-xs text-sky-200 transition-all flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-sky-400 animate-pulse shrink-0" />
+            <span>
+              <strong>Real-Time Spectator Mode:</strong> You are viewing <strong>{tournament.name}</strong> created by{' '}
+              {tournament.ownerName || tournament.ownerEmail || 'the tournament arbiter'}. Pairings, scores, and standings update live.
+            </span>
+          </div>
+
+          {currentUser && userTournaments.length > 0 && (
+            <button
+              onClick={() => handleSelectTournament(userTournaments[0])}
+              className="px-2.5 py-1 bg-sky-500/20 hover:bg-sky-500/30 text-sky-100 rounded-md font-semibold text-[11px] transition-colors shrink-0"
+            >
+              ← Back to My Tournaments ({userTournaments[0].name})
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Notification Banner */}
       {bannerMessage && (

@@ -127,7 +127,18 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       await onSignInWithGoogle();
     } catch (err: any) {
       console.error('Google auth error:', err);
-      setErrorMessage(err.message || 'Google sign-in was cancelled or failed.');
+      const isUnauthDomain =
+        err?.code === 'auth/unauthorized-domain' ||
+        err?.message?.includes('unauthorized-domain') ||
+        err?.message?.includes('auth/unauthorized-domain');
+
+      if (isUnauthDomain) {
+        setErrorMessage(
+          'Google Sign-In requires domain verification. Please use Email & Password below to sign in or create an account with zero setup!'
+        );
+      } else {
+        setErrorMessage(err.message || 'Google sign-in was cancelled or failed.');
+      }
     } finally {
       setLoading(false);
     }

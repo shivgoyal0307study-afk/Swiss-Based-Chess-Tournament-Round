@@ -276,7 +276,7 @@ export default function App() {
       } catch {}
     } catch (err: any) {
       console.error('Sign in error:', err);
-      alert(`Sign in error: ${err.message}`);
+      throw err;
     }
   };
 

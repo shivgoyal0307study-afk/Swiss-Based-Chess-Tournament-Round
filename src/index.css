@@ -1,0 +1,150 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background-color: #090a0f;
+    color: #f1f3f8;
+  }
+
+  code, kbd, samp, pre {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+}
+
+/* Minimal Card */
+.card-minimal {
+  background: #111318;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 0.875rem;
+}
+
+/* Clean Button: Primary Amber */
+.btn-primary {
+  background-color: #f59e0b;
+  color: #0b0c10;
+  font-weight: 600;
+  border-radius: 0.625rem;
+  transition: all 0.15s ease;
+}
+.btn-primary:hover {
+  background-color: #fbbf24;
+}
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+/* Clean Button: Subtle Dark */
+.btn-secondary {
+  background-color: #171922;
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.625rem;
+  transition: all 0.15s ease;
+}
+.btn-secondary:hover {
+  background-color: #222634;
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+.btn-secondary:active {
+  transform: scale(0.98);
+}
+
+/* Backward-compatible minimal aliases */
+.card-chess-3d, .card-chess-gold-3d {
+  background: #111318;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 0.875rem;
+}
+
+.btn-3d-amber {
+  background-color: #f59e0b;
+  color: #0b0c10;
+  font-weight: 600;
+  border-radius: 0.625rem;
+  border: none;
+  box-shadow: none;
+  transition: all 0.15s ease;
+}
+.btn-3d-amber:hover {
+  background-color: #fbbf24;
+  box-shadow: none;
+}
+.btn-3d-amber:active {
+  transform: scale(0.98);
+  box-shadow: none;
+}
+
+.btn-3d-dark {
+  background-color: #171922;
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.625rem;
+  box-shadow: none;
+  transition: all 0.15s ease;
+}
+.btn-3d-dark:hover {
+  background-color: #222634;
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  box-shadow: none;
+}
+.btn-3d-dark:active {
+  transform: scale(0.98);
+  box-shadow: none;
+}
+
+.chess-3d-bg {
+  background-color: #090a0f;
+}
+
+/* Clean Piece Indicators */
+.piece-disc-white {
+  background: #ffffff;
+  color: #090a0f;
+  border: 1px solid #e2e8f0;
+}
+
+.piece-disc-black {
+  background: #1e222d;
+  color: #f8fafc;
+  border: 1px solid #333a4d;
+}
+
+@media print {
+  header, nav, button, .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+    color: #000000 !important;
+  }
+
+  th, td {
+    border: 1px solid #cccccc !important;
+    color: #000000 !important;
+    background: #ffffff !important;
+  }
+
+  .bg-neutral-900, .bg-neutral-950, .card-minimal, .card-chess-3d {
+    background: #ffffff !important;
+    border-color: #cccccc !important;
+  }
+
+  .text-neutral-100, .text-neutral-200, .text-neutral-300, .text-neutral-400, .text-amber-400 {
+    color: #000000 !important;
+  }
+}

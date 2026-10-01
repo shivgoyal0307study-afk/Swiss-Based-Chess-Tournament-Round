@@ -1,0 +1,124 @@
+{
+  "entities": {
+    "Tournament": {
+      "title": "Tournament",
+      "description": "FIDE chess tournament instance containing configuration, players, and round-by-round pairings/results",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique tournament identifier",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the tournament director",
+          "maxLength": 128
+        },
+        "ownerEmail": {
+          "type": "string",
+          "description": "Email address of the tournament director creator",
+          "maxLength": 150
+        },
+        "ownerName": {
+          "type": "string",
+          "description": "Display name of creator",
+          "maxLength": 100
+        },
+        "allowedEmails": {
+          "type": "array",
+          "description": "List of assistant arbiter emails with permission to edit",
+          "items": { "type": "string" }
+        },
+        "isPublic": {
+          "type": "boolean",
+          "description": "Whether tournament is searchable by participants"
+        },
+        "name": {
+          "type": "string",
+          "description": "Tournament name",
+          "maxLength": 120
+        },
+        "location": {
+          "type": "string",
+          "description": "Tournament venue or online platform",
+          "maxLength": 120
+        },
+        "format": {
+          "type": "string",
+          "description": "Tournament pairing system",
+          "enum": ["swiss", "round_robin", "knockout"]
+        },
+        "roundsTotal": {
+          "type": "number",
+          "description": "Total number of scheduled rounds"
+        },
+        "currentRoundNumber": {
+          "type": "number",
+          "description": "Current active round number"
+        },
+        "round1TopSeedColor": {
+          "type": "string",
+          "description": "Drawn color for seed #1 on Board 1",
+          "enum": ["W", "B"]
+        },
+        "status": {
+          "type": "string",
+          "description": "Current stage of the tournament",
+          "enum": ["setup", "in_progress", "finished"]
+        },
+        "createdAt": {
+          "type": "number",
+          "description": "Epoch timestamp of creation"
+        },
+        "updatedAt": {
+          "type": "number",
+          "description": "Epoch timestamp of last update"
+        }
+      },
+      "required": ["id", "ownerId", "name", "format", "roundsTotal", "currentRoundNumber", "round1TopSeedColor", "status", "createdAt", "updatedAt"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth user ID",
+          "maxLength": 128
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address",
+          "maxLength": 150
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User display name",
+          "maxLength": 100
+        },
+        "updatedAt": {
+          "type": "number",
+          "description": "Epoch timestamp of update"
+        }
+      },
+      "required": ["uid", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/tournaments/{tournamentId}": {
+      "schema": "#/entities/Tournament",
+      "description": "Global directory of tournaments for arbiter control and participant search"
+    },
+    "/users/{userId}/tournaments/{tournamentId}": {
+      "schema": "#/entities/Tournament",
+      "description": "Collection of tournaments owned and managed by the authenticated user"
+    },
+    "/users/{userId}": {
+      "schema": "#/entities/UserProfile",
+      "description": "User account document"
+    }
+  }
+}

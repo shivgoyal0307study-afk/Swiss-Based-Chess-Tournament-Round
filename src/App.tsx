@@ -38,7 +38,7 @@ const PARTICIPANT_KEY = 'en_passant_participant_mode';
 
 function createDefaultTournament(): Tournament {
   return {
-    id: `tourney-${Date.now()}`,
+    id: `tourney-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
     name: 'Tournament',
     format: 'swiss',
     roundsTotal: 5,
@@ -49,6 +49,32 @@ function createDefaultTournament(): Tournament {
     status: 'setup',
     createdAt: Date.now(),
     updatedAt: Date.now(),
+    allowedEmails: [],
+    isPublic: true,
+  };
+}
+
+function createDefaultTournamentForUser(
+  userId?: string,
+  userEmail?: string | null,
+  userName?: string | null
+): Tournament {
+  const freshId = `tourney-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+  return {
+    id: freshId,
+    name: userName ? `${userName}'s Tournament` : 'FIDE Swiss Championship',
+    format: 'swiss',
+    roundsTotal: 5,
+    currentRoundNumber: 1,
+    players: [],
+    rounds: [],
+    round1TopSeedColor: 'W',
+    status: 'setup',
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    ownerId: userId,
+    ownerEmail: userEmail || undefined,
+    ownerName: userName || undefined,
     allowedEmails: [],
     isPublic: true,
   };
@@ -138,24 +164,21 @@ export default function App() {
           setUserTournaments(cloudTournaments);
 
           if (cloudTournaments.length > 0) {
-            const match = cloudTournaments.find((t) => t.id === tournament.id);
-            if (match) {
-              setTournament(match);
-              setSelectedRoundNumber(match.currentRoundNumber || match.rounds.length || 1);
-            } else {
-              const latest = cloudTournaments[0];
-              setTournament(latest);
-              setSelectedRoundNumber(latest.currentRoundNumber || latest.rounds.length || 1);
-            }
+            const lastActiveId = localStorage.getItem(`en_passant_user_active_${user.uid}`);
+            const match =
+              cloudTournaments.find((t) => t.id === lastActiveId) ||
+              cloudTournaments.find((t) => t.id === tournament.id) ||
+              cloudTournaments[0];
+
+            setTournament(match);
+            setSelectedRoundNumber(match.currentRoundNumber || match.rounds.length || 1);
+            localStorage.setItem(`en_passant_user_active_${user.uid}`, match.id);
           } else {
-            // First time: initialize tournament with current user as owner
-            const initialTourney: Tournament = {
-              ...tournament,
-              ownerId: user.uid,
-              ownerEmail: user.email || undefined,
-              ownerName: user.displayName || undefined,
-            };
+            // First time this arbiter logs in: create a fresh, strictly isolated tournament
+            const initialTourney = createDefaultTournamentForUser(user.uid, user.email, user.displayName);
             setTournament(initialTourney);
+            setSelectedRoundNumber(1);
+            localStorage.setItem(`en_passant_user_active_${user.uid}`, initialTourney.id);
             await saveTournamentToFirestore(user.uid, initialTourney, user.email, user.displayName);
             setUserTournaments([initialTourney]);
           }
@@ -195,10 +218,15 @@ export default function App() {
 
   // Save tournament to localStorage and Firestore (Only if user has edit permissions)
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(tournament));
-    } catch (e) {
-      console.error('Failed to save tournament to localStorage', e);
+    if (tournament?.id) {
+      try {
+        localStorage.setItem(`en_passant_tourney_${tournament.id}`, JSON.stringify(tournament));
+        if (currentUser) {
+          localStorage.setItem(`en_passant_user_active_${currentUser.uid}`, tournament.id);
+        }
+      } catch (e) {
+        console.error('Failed to save tournament to localStorage', e);
+      }
     }
 
     if (currentUser && canEdit && !isInitialLoadRef.current) {
@@ -469,6 +497,9 @@ export default function App() {
     setTournament(selected);
     setSelectedRoundNumber(selected.currentRoundNumber || selected.rounds.length || 1);
     setActiveTab('pairings');
+    if (currentUser) {
+      localStorage.setItem(`en_passant_user_active_${currentUser.uid}`, selected.id);
+    }
     showNotification(`Opened: ${selected.name}`);
   };
 
@@ -476,12 +507,21 @@ export default function App() {
     if (currentUser) {
       try {
         await deleteTournamentFromFirestore(currentUser.uid, tournamentId);
-        setUserTournaments((prev) => prev.filter((t) => t.id !== tournamentId));
+        const remaining = userTournaments.filter((t) => t.id !== tournamentId);
+        setUserTournaments(remaining);
         if (tournament.id === tournamentId) {
-          const fresh = createDefaultTournament();
-          setTournament(fresh);
-          setSelectedRoundNumber(1);
-          setActiveTab('pairings');
+          if (remaining.length > 0) {
+            setTournament(remaining[0]);
+            setSelectedRoundNumber(remaining[0].currentRoundNumber || 1);
+            localStorage.setItem(`en_passant_user_active_${currentUser.uid}`, remaining[0].id);
+          } else {
+            const fresh = createDefaultTournamentForUser(currentUser.uid, currentUser.email, currentUser.displayName);
+            setTournament(fresh);
+            setSelectedRoundNumber(1);
+            setUserTournaments([fresh]);
+            localStorage.setItem(`en_passant_user_active_${currentUser.uid}`, fresh.id);
+            await saveTournamentToFirestore(currentUser.uid, fresh, currentUser.email, currentUser.displayName);
+          }
         }
         showNotification('Tournament deleted.');
       } catch (err: any) {
@@ -605,16 +645,31 @@ export default function App() {
         <NewTournamentModal
           currentUserEmail={currentUser?.email}
           currentUserName={currentUser?.displayName}
-          onCreate={(t) => {
+          onCreate={async (t) => {
+            const freshId = `tourney-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
             const tourneyWithOwner: Tournament = {
               ...t,
+              id: freshId,
               ownerId: currentUser?.uid,
               ownerEmail: currentUser?.email || undefined,
               ownerName: currentUser?.displayName || undefined,
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
             };
             setTournament(tourneyWithOwner);
             setSelectedRoundNumber(1);
             setActiveTab('players');
+            // Safely keep all previous tournaments in state
+            setUserTournaments((prev) => [tourneyWithOwner, ...prev.filter((item) => item.id !== freshId)]);
+            if (currentUser) {
+              localStorage.setItem(`en_passant_user_active_${currentUser.uid}`, freshId);
+              await saveTournamentToFirestore(
+                currentUser.uid,
+                tourneyWithOwner,
+                currentUser.email,
+                currentUser.displayName
+              );
+            }
             showNotification(`Created tournament: ${t.name}`);
           }}
           onClose={() => setShowNewTourneyModal(false)}

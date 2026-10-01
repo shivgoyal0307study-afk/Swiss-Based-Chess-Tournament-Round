@@ -79,6 +79,7 @@ export function sanitizeTournament(
 
 /**
  * Saves a tournament to top-level /tournaments/{id} and user collection
+ * Enforces that only the creator/owner or allowed arbiter can save.
  */
 export async function saveTournamentToFirestore(
   userId: string,
@@ -86,15 +87,32 @@ export async function saveTournamentToFirestore(
   userEmail?: string | null,
   userName?: string | null
 ): Promise<void> {
+  if (!tournament || !tournament.id) return;
   const path = `tournaments/${tournament.id}`;
+
+  const cleanEmail = userEmail?.trim().toLowerCase();
+  const isOwner =
+    !tournament.ownerId ||
+    tournament.ownerId === userId ||
+    (cleanEmail && tournament.ownerEmail === cleanEmail);
+  const isCollaborator =
+    cleanEmail && tournament.allowedEmails?.map((e) => e.toLowerCase()).includes(cleanEmail);
+
+  if (!isOwner && !isCollaborator) {
+    console.warn(
+      `Permission denied: User ${userId} (${cleanEmail}) is not the creator or allowed arbiter of tournament ${tournament.id}`
+    );
+    return;
+  }
+
   try {
     const cleanTournament = sanitizeTournament(tournament, userId, userEmail, userName);
 
     // Save to global collection for discovery, participant view, and collaborator access
     await setDoc(doc(db, 'tournaments', cleanTournament.id), cleanTournament);
 
-    // Also mirror to user subcollection
-    if (userId && userId !== 'participant') {
+    // Also mirror to user subcollection if user is the owner
+    if (userId && userId !== 'participant' && cleanTournament.ownerId === userId) {
       await setDoc(doc(db, 'users', userId, 'tournaments', cleanTournament.id), cleanTournament);
     }
   } catch (error) {

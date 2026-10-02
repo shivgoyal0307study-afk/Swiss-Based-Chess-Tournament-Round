@@ -20,6 +20,9 @@ import {
   deleteTournamentFromFirestore,
   syncUserProfile,
   subscribeToTournament,
+  getAllKnownTournaments,
+  saveToAllKnownTournaments,
+  testFirestoreConnection,
 } from './services/tournamentFirestore';
 import { Header } from './components/Header';
 import { PairingsView } from './components/PairingsView';
@@ -107,6 +110,10 @@ export default function App() {
           };
         }
       }
+      const allKnown = getAllKnownTournaments();
+      if (allKnown.length > 0) {
+        return allKnown[0];
+      }
     } catch (e) {
       console.error('Failed to load tournament from localStorage', e);
     }
@@ -120,10 +127,21 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'pairings' | 'standings' | 'crosstable' | 'players'>('pairings');
   const [showNewTourneyModal, setShowNewTourneyModal] = useState<boolean>(false);
   const [showExportModal, setShowExportModal] = useState<boolean>(false);
+  const [showRulesModal, setShowRulesModal] = useState<boolean>(false);
+  const [firestoreRulesNotice, setFirestoreRulesNotice] = useState<boolean>(false);
   const [bannerMessage, setBannerMessage] = useState<string | null>(null);
 
   const isInitialLoadRef = useRef(true);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Test Firestore connection on mount
+  useEffect(() => {
+    testFirestoreConnection().then(({ ok }) => {
+      if (!ok) {
+        setFirestoreRulesNotice(true);
+      }
+    });
+  }, []);
 
   // Access Control / RBAC:
   // Can edit: Creator of tournament OR email in allowedEmails
@@ -175,28 +193,33 @@ export default function App() {
             localStorage.setItem(`en_passant_user_active_${user.uid}`, match.id);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(match));
           } else {
-            // If current tournament in memory already has data and belongs to this user or is unsaved, preserve it!
-            if (tournament && tournament.players && tournament.players.length > 0 && (!tournament.ownerId || tournament.ownerId === user.uid)) {
-              const preserved: Tournament = {
-                ...tournament,
-                ownerId: user.uid,
-                ownerEmail: user.email || tournament.ownerEmail,
-                ownerName: user.displayName || tournament.ownerName,
+            // Check all known tournaments in the browser to never wipe out user work!
+            const allKnown = getAllKnownTournaments();
+            if (allKnown.length > 0) {
+              const match =
+                allKnown.find((t) => t.ownerId === user.uid || (user.email && t.ownerEmail?.toLowerCase() === user.email.toLowerCase())) ||
+                allKnown[0];
+              const claimed: Tournament = {
+                ...match,
+                ownerId: match.ownerId || user.uid,
+                ownerEmail: match.ownerEmail || user.email || undefined,
+                ownerName: match.ownerName || user.displayName || undefined,
                 updatedAt: Date.now(),
               };
-              setTournament(preserved);
-              setUserTournaments([preserved]);
-              localStorage.setItem(`en_passant_user_active_${user.uid}`, preserved.id);
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(preserved));
-              await saveTournamentToFirestore(user.uid, preserved, user.email, user.displayName);
+              setTournament(claimed);
+              setUserTournaments([claimed]);
+              setSelectedRoundNumber(claimed.currentRoundNumber || claimed.rounds.length || 1);
+              localStorage.setItem(`en_passant_user_active_${user.uid}`, claimed.id);
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(claimed));
+              saveTournamentToFirestore(user.uid, claimed, user.email, user.displayName).catch(console.warn);
             } else {
-              // Brand new user: create initial isolated tournament
+              // Brand new user with 0 tournaments: create initial isolated tournament
               const initialTourney = createDefaultTournamentForUser(user.uid, user.email, user.displayName);
               setTournament(initialTourney);
               setSelectedRoundNumber(1);
               localStorage.setItem(`en_passant_user_active_${user.uid}`, initialTourney.id);
               localStorage.setItem(STORAGE_KEY, JSON.stringify(initialTourney));
-              await saveTournamentToFirestore(user.uid, initialTourney, user.email, user.displayName);
+              saveTournamentToFirestore(user.uid, initialTourney, user.email, user.displayName).catch(console.warn);
               setUserTournaments([initialTourney]);
             }
           }
@@ -614,6 +637,32 @@ export default function App() {
         </div>
       )}
 
+      {/* Cloud Sync Status Notice for Netlify / Firebase setup */}
+      {firestoreRulesNotice && (
+        <div className="bg-amber-500/10 border-b border-amber-500/20 py-2 px-4 flex items-center justify-between text-xs text-amber-300">
+          <div className="flex items-center gap-2">
+            <span>⚠️</span>
+            <span>
+              <strong>Cross-Device Live Sync:</strong> Tournaments are saved safely on your device. To show them live to participants on other phones or computers, publish your Firestore Security Rules in Firebase Console (<code className="bg-black/30 px-1 py-0.5 rounded font-mono text-[11px]">en-passant-2f5e1</code>).
+            </span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setShowRulesModal(true)}
+              className="px-2.5 py-1 bg-amber-400 text-neutral-950 font-semibold rounded text-[11px] hover:bg-amber-300 transition-colors"
+            >
+              View & Copy Rules
+            </button>
+            <button
+              onClick={() => setFirestoreRulesNotice(false)}
+              className="text-neutral-400 hover:text-white text-xs px-1"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Content Area */}
       <main className="flex-1 pb-16">
         {activeTab === 'pairings' && (
@@ -695,15 +744,16 @@ export default function App() {
             setActiveTab('players');
             // Safely keep all previous tournaments in state
             setUserTournaments((prev) => [tourneyWithOwner, ...prev.filter((item) => item.id !== freshId)]);
-            if (currentUser) {
-              localStorage.setItem(`en_passant_user_active_${currentUser.uid}`, freshId);
-              await saveTournamentToFirestore(
-                currentUser.uid,
-                tourneyWithOwner,
-                currentUser.email,
-                currentUser.displayName
-              );
-            }
+            saveToAllKnownTournaments(tourneyWithOwner);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(tourneyWithOwner));
+            const activeUid = currentUser?.uid || 'local_user';
+            localStorage.setItem(`en_passant_user_active_${activeUid}`, freshId);
+            await saveTournamentToFirestore(
+              activeUid,
+              tourneyWithOwner,
+              currentUser?.email,
+              currentUser?.displayName
+            );
             showNotification(`Created tournament: ${t.name}`);
           }}
           onClose={() => setShowNewTourneyModal(false)}
@@ -739,6 +789,86 @@ export default function App() {
           }}
           onClose={() => setShowExportModal(false)}
         />
+      )}
+
+      {/* Firebase Rules Configuration Modal */}
+      {showRulesModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-amber-400 font-bold text-lg">⚡</span>
+                <h3 className="text-sm font-bold text-white">Enable Live Cross-Device Sync</h3>
+              </div>
+              <button
+                onClick={() => setShowRulesModal(false)}
+                className="text-neutral-400 hover:text-white text-sm p-1 rounded"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-neutral-300 leading-relaxed">
+              To allow participants on other phones and computers to search and view your tournaments live, paste these rules into your Firebase Console:
+            </p>
+
+            <ol className="text-xs text-neutral-400 space-y-1 list-decimal list-inside">
+              <li>Open <a href="https://console.firebase.google.com/project/en-passant-2f5e1/firestore/rules" target="_blank" rel="noreferrer" className="text-amber-400 underline font-semibold">Firebase Console → Firestore Rules</a></li>
+              <li>Replace the content with the rules below and click <strong>Publish</strong></li>
+            </ol>
+
+            <div className="relative">
+              <pre className="bg-neutral-950 border border-neutral-800 rounded-xl p-3.5 text-[11px] font-mono text-emerald-400 overflow-x-auto leading-relaxed">
+{`rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /tournaments/{tournamentId} {
+      allow read: if true;
+      allow write: if true;
+    }
+    match /users/{userId}/{document=**} {
+      allow read, write: if true;
+    }
+  }
+}`}
+              </pre>
+              <button
+                onClick={() => {
+                  const rules = `rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /tournaments/{tournamentId} {\n      allow read: if true;\n      allow write: if true;\n    }\n    match /users/{userId}/{document=**} {\n      allow read, write: if true;\n    }\n  }\n}`;
+                  navigator.clipboard.writeText(rules);
+                  showNotification('Copied rules to clipboard!');
+                }}
+                className="absolute top-2.5 right-2.5 px-2.5 py-1 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-[11px] font-medium rounded border border-neutral-700 transition-colors"
+              >
+                Copy Rules
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between pt-2 border-t border-neutral-800">
+              <button
+                onClick={async () => {
+                  const result = await testFirestoreConnection();
+                  if (result.ok) {
+                    setFirestoreRulesNotice(false);
+                    setShowRulesModal(false);
+                    showNotification('Firestore is connected and live sync is active!');
+                  } else {
+                    alert('Rules not published yet or still propagating. Please publish in Firebase Console and try again in 5 seconds.');
+                  }
+                }}
+                className="px-3.5 py-1.5 bg-amber-400 hover:bg-amber-300 text-neutral-950 text-xs font-semibold rounded-lg transition-colors"
+              >
+                Verify Connection
+              </button>
+              <button
+                onClick={() => setShowRulesModal(false)}
+                className="px-3.5 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-medium rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

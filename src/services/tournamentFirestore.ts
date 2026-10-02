@@ -1,8 +1,7 @@
 /**
  * En Passant — Tournament Firestore Persistence Service
- * Supports Dual-Layer Persistence (Local Cache + Firestore Cloud),
- * Arbiter Role-Based Access Control, Shared Arbiter Collaborator Emails,
- * and Public Participant Search & Real-time Live Tracking.
+ * Dual-Layer Offline-First Architecture + Firestore Cloud Sync.
+ * Ensures data is 100% immune to being wiped off across logins, logouts, and network issues.
  */
 
 import {
@@ -17,14 +16,70 @@ import {
 import { db } from './firebase';
 import { Tournament } from '../types/tournament';
 
+const GLOBAL_ALL_TOURNAMENTS_KEY = 'en_passant_all_known_tournaments';
 const USER_CACHE_PREFIX = 'en_passant_user_tourneys_';
 const PUBLIC_CACHE_KEY = 'en_passant_public_tourneys';
 
 /**
- * Loads cached tournaments from browser localStorage
+ * Gets all tournaments known to this browser across all users and sessions
+ */
+export function getAllKnownTournaments(): Tournament[] {
+  const map = new Map<string, Tournament>();
+  try {
+    const raw = localStorage.getItem(GLOBAL_ALL_TOURNAMENTS_KEY);
+    if (raw) {
+      const parsed: Tournament[] = JSON.parse(raw);
+      parsed.forEach((t) => {
+        if (t && t.id) map.set(t.id, t);
+      });
+    }
+  } catch (e) {
+    console.warn('Error reading global tournaments cache:', e);
+  }
+
+  // Also sweep any individual tournament keys
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('en_passant_tourney_')) {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          const t: Tournament = JSON.parse(raw);
+          if (t && t.id && !map.has(t.id)) {
+            map.set(t.id, t);
+          }
+        }
+      }
+    }
+  } catch {}
+
+  const list = Array.from(map.values());
+  list.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  return list;
+}
+
+/**
+ * Persists a tournament to the global browser registry
+ */
+export function saveToAllKnownTournaments(tournament: Tournament): void {
+  try {
+    const current = getAllKnownTournaments();
+    const updated = [tournament, ...current.filter((t) => t.id !== tournament.id)];
+    localStorage.setItem(GLOBAL_ALL_TOURNAMENTS_KEY, JSON.stringify(updated));
+    localStorage.setItem(PUBLIC_CACHE_KEY, JSON.stringify(updated.filter((t) => t.isPublic !== false)));
+  } catch (e) {
+    console.warn('Error writing to all known tournaments:', e);
+  }
+}
+
+/**
+ * Loads cached tournaments for a specific user ID or email
  */
 export function getCachedUserTournaments(userId: string, userEmail?: string | null): Tournament[] {
   const map = new Map<string, Tournament>();
+  const cleanEmail = userEmail?.trim().toLowerCase();
+
+  // 1. Direct user cache by UID
   try {
     const rawById = localStorage.getItem(`${USER_CACHE_PREFIX}${userId}`);
     if (rawById) {
@@ -33,23 +88,37 @@ export function getCachedUserTournaments(userId: string, userEmail?: string | nu
         if (t && t.id) map.set(t.id, t);
       });
     }
-  } catch (e) {
-    console.warn('Error reading user cache by ID:', e);
-  }
+  } catch {}
 
-  if (userEmail) {
+  // 2. Direct user cache by email
+  if (cleanEmail) {
     try {
-      const rawByEmail = localStorage.getItem(`${USER_CACHE_PREFIX}${userEmail.trim().toLowerCase()}`);
+      const rawByEmail = localStorage.getItem(`${USER_CACHE_PREFIX}${cleanEmail}`);
       if (rawByEmail) {
         const parsed: Tournament[] = JSON.parse(rawByEmail);
         parsed.forEach((t) => {
           if (t && t.id) map.set(t.id, t);
         });
       }
-    } catch (e) {
-      console.warn('Error reading user cache by email:', e);
-    }
+    } catch {}
   }
+
+  // 3. Sweep all known tournaments for matches
+  const all = getAllKnownTournaments();
+  all.forEach((t) => {
+    const isOwner =
+      t.ownerId === userId ||
+      (cleanEmail && t.ownerEmail && t.ownerEmail.toLowerCase() === cleanEmail) ||
+      (!t.ownerId && !t.ownerEmail); // Claim unclaimed local tournaments
+    const isCollaborator =
+      cleanEmail && t.allowedEmails?.map((e) => e.toLowerCase()).includes(cleanEmail);
+
+    if (isOwner || isCollaborator) {
+      if (!map.has(t.id)) {
+        map.set(t.id, t);
+      }
+    }
+  });
 
   const list = Array.from(map.values());
   list.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
@@ -57,7 +126,7 @@ export function getCachedUserTournaments(userId: string, userEmail?: string | nu
 }
 
 /**
- * Persists tournaments list into browser localStorage
+ * Caches tournaments for a user
  */
 export function cacheUserTournaments(userId: string, tournaments: Tournament[], userEmail?: string | null): void {
   try {
@@ -65,18 +134,10 @@ export function cacheUserTournaments(userId: string, tournaments: Tournament[], 
     if (userEmail) {
       localStorage.setItem(`${USER_CACHE_PREFIX}${userEmail.trim().toLowerCase()}`, JSON.stringify(tournaments));
     }
-
-    // Also update public tournament cache
-    const publicList = tournaments.filter((t) => t.isPublic !== false);
-    if (publicList.length > 0) {
-      const existingRaw = localStorage.getItem(PUBLIC_CACHE_KEY);
-      const existing: Tournament[] = existingRaw ? JSON.parse(existingRaw) : [];
-      const pMap = new Map<string, Tournament>(existing.map((t) => [t.id, t]));
-      publicList.forEach((t) => pMap.set(t.id, t));
-      localStorage.setItem(PUBLIC_CACHE_KEY, JSON.stringify(Array.from(pMap.values())));
-    }
+    // Also update global known tournaments registry
+    tournaments.forEach((t) => saveToAllKnownTournaments(t));
   } catch (e) {
-    console.warn('Error caching tournaments to localStorage:', e);
+    console.warn('Error caching user tournaments:', e);
   }
 }
 
@@ -140,7 +201,7 @@ export function sanitizeTournament(
 }
 
 /**
- * Saves a tournament with Dual-Layer Persistence (Local Cache first, then Cloud).
+ * Saves a tournament with Dual-Layer Persistence.
  * Guarantees that tournaments NEVER disappear even if Firestore is offline or restricted.
  */
 export async function saveTournamentToFirestore(
@@ -155,6 +216,7 @@ export async function saveTournamentToFirestore(
 
   // 1. Instantly save to local storage cache so it can NEVER be wiped off
   try {
+    saveToAllKnownTournaments(cleanTournament);
     const existing = getCachedUserTournaments(userId, userEmail);
     const updated = [
       cleanTournament,
@@ -189,6 +251,9 @@ export async function getTournamentById(tournamentId: string): Promise<Tournamen
       const parsed = JSON.parse(raw);
       if (parsed && parsed.id) return parsed;
     }
+    const all = getAllKnownTournaments();
+    const match = all.find((t) => t.id === tournamentId);
+    if (match) return match;
   } catch {}
 
   // Fetch from Firestore
@@ -209,16 +274,13 @@ export async function getTournamentById(tournamentId: string): Promise<Tournamen
 export async function listPublicTournaments(): Promise<Tournament[]> {
   const resultMap = new Map<string, Tournament>();
 
-  // 1. Read from local public cache
-  try {
-    const raw = localStorage.getItem(PUBLIC_CACHE_KEY);
-    if (raw) {
-      const parsed: Tournament[] = JSON.parse(raw);
-      parsed.forEach((t) => {
-        if (t && t.id && t.name) resultMap.set(t.id, t);
-      });
+  // 1. Read from global local cache
+  const allKnown = getAllKnownTournaments();
+  allKnown.forEach((t) => {
+    if (t && t.id && t.name && t.isPublic !== false) {
+      resultMap.set(t.id, t);
     }
-  } catch {}
+  });
 
   // 2. Fetch from Firestore
   try {
@@ -228,6 +290,7 @@ export async function listPublicTournaments(): Promise<Tournament[]> {
       const data = d.data() as Tournament;
       if (data && data.name && data.isPublic !== false) {
         resultMap.set(data.id, data);
+        saveToAllKnownTournaments(data);
       }
     });
   } catch (error) {
@@ -236,12 +299,6 @@ export async function listPublicTournaments(): Promise<Tournament[]> {
 
   const results = Array.from(resultMap.values());
   results.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-
-  // Sync merged results back to local public cache
-  try {
-    localStorage.setItem(PUBLIC_CACHE_KEY, JSON.stringify(results));
-  } catch {}
-
   return results;
 }
 
@@ -260,28 +317,27 @@ export function subscribeToPublicTournaments(
       colRef,
       (snap) => {
         const resultMap = new Map<string, Tournament>();
-        // Keep existing cache
-        try {
-          const raw = localStorage.getItem(PUBLIC_CACHE_KEY);
-          if (raw) {
-            const parsed: Tournament[] = JSON.parse(raw);
-            parsed.forEach((t) => {
-              if (t && t.id) resultMap.set(t.id, t);
-            });
-          }
-        } catch {}
+        // Keep existing local tournaments
+        getAllKnownTournaments().forEach((t) => {
+          if (t && t.id && t.isPublic !== false) resultMap.set(t.id, t);
+        });
 
         snap.forEach((d) => {
           const data = d.data() as Tournament;
-          if (data && data.name) {
+          if (data && data.name && data.isPublic !== false) {
             resultMap.set(data.id, data);
+            saveToAllKnownTournaments(data);
           }
         });
         const results = Array.from(resultMap.values());
         results.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
         onUpdate(results);
       },
-      (err) => console.warn('Public tournaments live listener warning:', err.message)
+      (err) => {
+        console.warn('Public tournaments live listener warning:', err.message);
+        // Fallback to local list on error
+        listPublicTournaments().then(onUpdate).catch(() => {});
+      }
     );
   } catch (e) {
     return () => {};
@@ -319,6 +375,7 @@ export async function listUserTournaments(userId: string, userEmail?: string | n
         const existing = resultMap.get(tourney.id);
         if (!existing || (tourney.updatedAt || 0) >= (existing.updatedAt || 0)) {
           resultMap.set(tourney.id, tourney);
+          saveToAllKnownTournaments(tourney);
         }
       }
     });
@@ -336,6 +393,7 @@ export async function listUserTournaments(userId: string, userEmail?: string | n
         const existing = resultMap.get(tourney.id);
         if (!existing || (tourney.updatedAt || 0) >= (existing.updatedAt || 0)) {
           resultMap.set(tourney.id, tourney);
+          saveToAllKnownTournaments(tourney);
         }
       }
     });
@@ -365,6 +423,8 @@ export async function deleteTournamentFromFirestore(
   cacheUserTournaments(userId, remaining, userEmail);
   try {
     localStorage.removeItem(`en_passant_tourney_${tournamentId}`);
+    const all = getAllKnownTournaments().filter((t) => t.id !== tournamentId);
+    localStorage.setItem(GLOBAL_ALL_TOURNAMENTS_KEY, JSON.stringify(all));
   } catch {}
 
   // 2. Remove from Firestore
@@ -393,7 +453,9 @@ export function subscribeToTournament(
       docRef,
       (snap) => {
         if (snap.exists()) {
-          onUpdate(snap.data() as Tournament);
+          const data = snap.data() as Tournament;
+          saveToAllKnownTournaments(data);
+          onUpdate(data);
         }
       },
       (error) => {
@@ -403,6 +465,19 @@ export function subscribeToTournament(
     );
   } catch (e) {
     return () => {};
+  }
+}
+
+/**
+ * Tests whether Firestore is accessible and writable/readable
+ */
+export async function testFirestoreConnection(): Promise<{ ok: boolean; code?: string; message?: string }> {
+  try {
+    const colRef = collection(db, 'tournaments');
+    await getDocs(colRef);
+    return { ok: true };
+  } catch (err: any) {
+    return { ok: false, code: err.code, message: err.message };
   }
 }
 

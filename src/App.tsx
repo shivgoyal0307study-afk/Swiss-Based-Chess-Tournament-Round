@@ -173,14 +173,32 @@ export default function App() {
             setTournament(match);
             setSelectedRoundNumber(match.currentRoundNumber || match.rounds.length || 1);
             localStorage.setItem(`en_passant_user_active_${user.uid}`, match.id);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(match));
           } else {
-            // First time this arbiter logs in: create a fresh, strictly isolated tournament
-            const initialTourney = createDefaultTournamentForUser(user.uid, user.email, user.displayName);
-            setTournament(initialTourney);
-            setSelectedRoundNumber(1);
-            localStorage.setItem(`en_passant_user_active_${user.uid}`, initialTourney.id);
-            await saveTournamentToFirestore(user.uid, initialTourney, user.email, user.displayName);
-            setUserTournaments([initialTourney]);
+            // If current tournament in memory already has data and belongs to this user or is unsaved, preserve it!
+            if (tournament && tournament.players && tournament.players.length > 0 && (!tournament.ownerId || tournament.ownerId === user.uid)) {
+              const preserved: Tournament = {
+                ...tournament,
+                ownerId: user.uid,
+                ownerEmail: user.email || tournament.ownerEmail,
+                ownerName: user.displayName || tournament.ownerName,
+                updatedAt: Date.now(),
+              };
+              setTournament(preserved);
+              setUserTournaments([preserved]);
+              localStorage.setItem(`en_passant_user_active_${user.uid}`, preserved.id);
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(preserved));
+              await saveTournamentToFirestore(user.uid, preserved, user.email, user.displayName);
+            } else {
+              // Brand new user: create initial isolated tournament
+              const initialTourney = createDefaultTournamentForUser(user.uid, user.email, user.displayName);
+              setTournament(initialTourney);
+              setSelectedRoundNumber(1);
+              localStorage.setItem(`en_passant_user_active_${user.uid}`, initialTourney.id);
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(initialTourney));
+              await saveTournamentToFirestore(user.uid, initialTourney, user.email, user.displayName);
+              setUserTournaments([initialTourney]);
+            }
           }
         } catch (err) {
           console.error('Error fetching user cloud tournaments:', err);
@@ -189,6 +207,7 @@ export default function App() {
           isInitialLoadRef.current = false;
         }
       } else {
+        // User logged out: preserve current state in storage, don't blank it out
         setUserTournaments([]);
         isInitialLoadRef.current = false;
       }
@@ -230,6 +249,7 @@ export default function App() {
     if (tournament?.id) {
       try {
         localStorage.setItem(`en_passant_tourney_${tournament.id}`, JSON.stringify(tournament));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(tournament));
         if (currentUser) {
           localStorage.setItem(`en_passant_user_active_${currentUser.uid}`, tournament.id);
         }
@@ -321,6 +341,10 @@ export default function App() {
   // Sign Out
   const handleSignOut = async () => {
     try {
+      if (tournament?.id) {
+        localStorage.setItem(`en_passant_tourney_${tournament.id}`, JSON.stringify(tournament));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(tournament));
+      }
       await signOut(auth);
       setIsParticipant(false);
       localStorage.removeItem(PARTICIPANT_KEY);
@@ -516,7 +540,7 @@ export default function App() {
   const handleDeleteTournament = async (tournamentId: string) => {
     if (currentUser) {
       try {
-        await deleteTournamentFromFirestore(currentUser.uid, tournamentId);
+        await deleteTournamentFromFirestore(currentUser.uid, tournamentId, currentUser.email);
         const remaining = userTournaments.filter((t) => t.id !== tournamentId);
         setUserTournaments(remaining);
         if (tournament.id === tournamentId) {

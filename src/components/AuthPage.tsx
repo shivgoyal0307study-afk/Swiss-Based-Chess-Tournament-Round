@@ -113,6 +113,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         msg = 'Password must be at least 6 characters.';
       } else if (err.code === 'auth/invalid-email') {
         msg = 'Please enter a valid email address.';
+      } else if (err.code === 'auth/operation-not-allowed') {
+        msg = 'Email/Password provider is disabled in Firebase Console. Please enable Email/Password under Authentication > Sign-in method in Firebase Console.';
       }
       setErrorMessage(msg);
     } finally {
@@ -133,8 +135,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
         err?.message?.includes('auth/unauthorized-domain');
 
       if (isUnauthDomain) {
+        const hostname = typeof window !== 'undefined' ? window.location.hostname : 'Netlify domain';
         setErrorMessage(
-          'Google Sign-In requires domain verification. Please use Email & Password below to sign in or create an account with zero setup!'
+          `Domain "${hostname}" is not authorized. Add it in Firebase Console > Authentication > Settings > Authorized domains, or use Email & Password below.`
         );
       } else {
         setErrorMessage(err.message || 'Google sign-in was cancelled or failed.');

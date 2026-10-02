@@ -195,19 +195,12 @@ export const PairingsView: React.FC<PairingsViewProps> = ({
         </div>
       </div>
 
-      {/* Notice for Read-Only / Locked rounds */}
-      {isReadOnly ? (
-        <div className="p-3 rounded-lg bg-neutral-900/80 border border-neutral-800 flex items-center justify-between text-xs text-neutral-400">
-          <div className="flex items-center gap-2">
-            <Eye className="w-3.5 h-3.5 text-amber-400" />
-            <span>Participant Mode (Read-Only) · Showing official Round {roundNum} board pairings and results</span>
-          </div>
-        </div>
-      ) : roundNum < tournament.rounds.length ? (
-        <div className="p-3 rounded-lg bg-neutral-900 border border-neutral-800 flex items-center justify-between text-xs text-neutral-400">
+      {/* Notice for Locked past rounds */}
+      {!isReadOnly && roundNum < tournament.rounds.length ? (
+        <div className="p-2.5 rounded-lg bg-neutral-900 border border-neutral-800 flex items-center justify-between text-xs text-neutral-400">
           <div className="flex items-center gap-2">
             <Lock className="w-3.5 h-3.5 text-neutral-500" />
-            <span>Round {roundNum} results are locked because Round {tournament.rounds.length} is already underway.</span>
+            <span>Round {roundNum} is locked. Round {tournament.rounds.length} is underway.</span>
           </div>
           <button
             onClick={() => setSelectedRoundNumber(tournament.rounds.length)}

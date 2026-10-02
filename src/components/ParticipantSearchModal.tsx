@@ -8,7 +8,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Tournament } from '../types/tournament';
-import { listPublicTournaments } from '../services/tournamentFirestore';
+import { listPublicTournaments, subscribeToPublicTournaments } from '../services/tournamentFirestore';
 import { calculateStandings } from '../engine/tiebreakers';
 import {
   Search,
@@ -17,13 +17,11 @@ import {
   Users,
   ArrowRight,
   X,
-  RefreshCw,
   Eye,
-  Sparkles,
   History,
   Activity,
   Award,
-  Clock,
+  RefreshCw,
 } from 'lucide-react';
 
 interface ParticipantSearchModalProps {
@@ -56,7 +54,13 @@ export const ParticipantSearchModal: React.FC<ParticipantSearchModalProps> = ({
   };
 
   useEffect(() => {
-    fetchTournaments();
+    setLoading(true);
+    // Real-time live listener for public tournaments
+    const unsubscribe = subscribeToPublicTournaments((publicList) => {
+      setTournaments(publicList);
+      setLoading(false);
+    });
+    return () => unsubscribe();
   }, []);
 
   const filteredTournaments = tournaments.filter((t) => {
@@ -92,19 +96,11 @@ export const ParticipantSearchModal: React.FC<ParticipantSearchModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-amber-400 font-bold text-lg">
+            <div className="w-8 h-8 rounded-lg bg-neutral-800 border border-neutral-700 flex items-center justify-center text-amber-400 font-bold text-base">
               ♞
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-white">Participant Portal & Historical Archive</h2>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-400/10 text-amber-300 font-mono font-semibold border border-amber-400/30">
-                  Open Access
-                </span>
-              </div>
-              <p className="text-xs text-neutral-400">
-                Search ongoing championships, view round-by-round pairings, and review completed tournament histories
-              </p>
+              <h2 className="text-sm font-bold text-white">Tournaments Directory</h2>
             </div>
           </div>
           <button

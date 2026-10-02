@@ -583,28 +583,6 @@ export default function App() {
         }}
       />
 
-      {/* Live Spectator / Read-Only Banner for other arbiters & participants */}
-      {!canEdit && (
-        <div className="bg-sky-500/10 border-b border-sky-500/20 py-2 px-4 flex items-center justify-between text-xs text-sky-200 transition-all flex-wrap gap-2">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-sky-400 animate-pulse shrink-0" />
-            <span>
-              <strong>Real-Time Spectator Mode:</strong> You are viewing <strong>{tournament.name}</strong> created by{' '}
-              {tournament.ownerName || tournament.ownerEmail || 'the tournament arbiter'}. Pairings, scores, and standings update live.
-            </span>
-          </div>
-
-          {currentUser && userTournaments.length > 0 && (
-            <button
-              onClick={() => handleSelectTournament(userTournaments[0])}
-              className="px-2.5 py-1 bg-sky-500/20 hover:bg-sky-500/30 text-sky-100 rounded-md font-semibold text-[11px] transition-colors shrink-0"
-            >
-              ← Back to My Tournaments ({userTournaments[0].name})
-            </button>
-          )}
-        </div>
-      )}
-
       {/* Notification Banner */}
       {bannerMessage && (
         <div className="bg-amber-500/10 border-b border-amber-500/20 py-2 px-4 text-center text-xs font-semibold text-amber-300 transition-all">

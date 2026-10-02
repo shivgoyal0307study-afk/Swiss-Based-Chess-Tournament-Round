@@ -13,20 +13,19 @@ import {
   deleteDoc,
   onSnapshot,
   query,
-  limit,
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from './firebase';
 import { Tournament } from '../types/tournament';
 
 /**
- * Sanitizes tournament data for Firestore storage
+ * Sanitizes tournament data for Firestore storage (NO undefined values)
  */
 export function sanitizeTournament(
   tournament: Tournament,
   ownerId?: string,
   ownerEmail?: string | null,
   ownerName?: string | null
-): Tournament {
+): Record<string, any> {
   const cleanOwnerId = tournament.ownerId || ownerId || 'anonymous';
   const cleanOwnerEmail = (tournament.ownerEmail || ownerEmail || '').trim().toLowerCase();
   const cleanOwnerName = tournament.ownerName || ownerName || '';
@@ -35,10 +34,10 @@ export function sanitizeTournament(
     .filter(Boolean);
 
   return {
-    id: tournament.id,
+    id: String(tournament.id),
     ownerId: cleanOwnerId,
-    ownerEmail: cleanOwnerEmail || undefined,
-    ownerName: cleanOwnerName || undefined,
+    ownerEmail: cleanOwnerEmail,
+    ownerName: cleanOwnerName,
     allowedEmails: cleanAllowed,
     isPublic: tournament.isPublic !== false,
     name: tournament.name || 'Untitled Tournament',
@@ -57,7 +56,7 @@ export function sanitizeTournament(
       active: p.active !== false,
       title: p.title || '',
       federation: p.federation || '',
-      initialRank: p.initialRank || undefined,
+      initialRank: p.initialRank != null ? Number(p.initialRank) : null,
       halfPointByeRequestedRounds: p.halfPointByeRequestedRounds || [],
     })),
     rounds: (tournament.rounds || []).map((r) => ({
@@ -67,11 +66,11 @@ export function sanitizeTournament(
       games: (r.games || []).map((g) => ({
         id: g.id,
         round: g.round,
-        boardNumber: g.boardNumber || undefined,
+        boardNumber: g.boardNumber != null ? Number(g.boardNumber) : null,
         whitePlayerId: g.whitePlayerId ?? null,
         blackPlayerId: g.blackPlayerId ?? null,
         result: g.result ?? null,
-        manualOverride: g.manualOverride ?? false,
+        manualOverride: Boolean(g.manualOverride),
       })),
     })),
   };
@@ -99,9 +98,7 @@ export async function saveTournamentToFirestore(
     cleanEmail && tournament.allowedEmails?.map((e) => e.toLowerCase()).includes(cleanEmail);
 
   if (!isOwner && !isCollaborator) {
-    console.warn(
-      `Permission denied: User ${userId} (${cleanEmail}) is not the creator or allowed arbiter of tournament ${tournament.id}`
-    );
+    console.warn(`Permission denied: User ${userId} is not allowed to edit tournament ${tournament.id}`);
     return;
   }
 
@@ -139,18 +136,16 @@ export async function getTournamentById(tournamentId: string): Promise<Tournamen
 
 /**
  * Fetches all active/ongoing tournaments for participant search
- * Open to participants without any login or password
  */
 export async function listPublicTournaments(): Promise<Tournament[]> {
   const path = 'tournaments';
   try {
     const colRef = collection(db, 'tournaments');
-    const q = query(colRef, limit(50));
-    const snap = await getDocs(q);
+    const snap = await getDocs(colRef);
     const results: Tournament[] = [];
     snap.forEach((d) => {
       const data = d.data() as Tournament;
-      if (data && data.name && data.isPublic !== false) {
+      if (data && data.name) {
         results.push(data);
       }
     });
@@ -163,32 +158,44 @@ export async function listPublicTournaments(): Promise<Tournament[]> {
 }
 
 /**
+ * Real-time subscription to all public tournaments for live search modal
+ */
+export function subscribeToPublicTournaments(
+  onUpdate: (tournaments: Tournament[]) => void
+): () => void {
+  const colRef = collection(db, 'tournaments');
+  return onSnapshot(
+    colRef,
+    (snap) => {
+      const results: Tournament[] = [];
+      snap.forEach((d) => {
+        const data = d.data() as Tournament;
+        if (data && data.name) {
+          results.push(data);
+        }
+      });
+      results.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+      onUpdate(results);
+    },
+    (err) => console.warn('Public tournaments live listener error:', err)
+  );
+}
+
+/**
  * Lists tournaments owned by a user OR where their email is in allowedEmails
  */
 export async function listUserTournaments(userId: string, userEmail?: string | null): Promise<Tournament[]> {
-  const path = `users/${userId}/tournaments`;
   const cleanEmail = userEmail?.trim().toLowerCase();
   const resultMap = new Map<string, Tournament>();
 
   try {
-    // 1. Fetch from user's personal subcollection
-    const colRef = collection(db, 'users', userId, 'tournaments');
-    const snap = await getDocs(query(colRef));
+    // 1. Fetch from global /tournaments
+    const globalCol = collection(db, 'tournaments');
+    const snap = await getDocs(globalCol);
     snap.forEach((d) => {
       const tourney = d.data() as Tournament;
-      resultMap.set(tourney.id, tourney);
-    });
-  } catch (error) {
-    console.warn('Could not list from personal subcollection:', error);
-  }
-
-  try {
-    // 2. Also check global /tournaments collection for shared tournaments or created ones
-    const globalCol = collection(db, 'tournaments');
-    const globalSnap = await getDocs(query(globalCol, limit(50)));
-    globalSnap.forEach((d) => {
-      const tourney = d.data() as Tournament;
-      const isOwner = tourney.ownerId === userId || (cleanEmail && tourney.ownerEmail === cleanEmail);
+      if (!tourney || !tourney.id) return;
+      const isOwner = tourney.ownerId === userId || (cleanEmail && tourney.ownerEmail && tourney.ownerEmail.toLowerCase() === cleanEmail);
       const isCollaborator = cleanEmail && tourney.allowedEmails?.map((e) => e.toLowerCase()).includes(cleanEmail);
 
       if (isOwner || isCollaborator) {
@@ -196,7 +203,21 @@ export async function listUserTournaments(userId: string, userEmail?: string | n
       }
     });
   } catch (error) {
-    console.warn('Could not search global tournaments for shared access:', error);
+    console.warn('Could not list from global tournaments:', error);
+  }
+
+  try {
+    // 2. Also check personal subcollection as fallback
+    const colRef = collection(db, 'users', userId, 'tournaments');
+    const userSnap = await getDocs(colRef);
+    userSnap.forEach((d) => {
+      const tourney = d.data() as Tournament;
+      if (tourney && tourney.id) {
+        resultMap.set(tourney.id, tourney);
+      }
+    });
+  } catch (error) {
+    console.warn('Could not list from personal subcollection:', error);
   }
 
   const list = Array.from(resultMap.values());
@@ -210,10 +231,7 @@ export async function listUserTournaments(userId: string, userEmail?: string | n
 export async function deleteTournamentFromFirestore(userId: string, tournamentId: string): Promise<void> {
   const path = `tournaments/${tournamentId}`;
   try {
-    // Delete from global collection
     await deleteDoc(doc(db, 'tournaments', tournamentId));
-
-    // Delete from user collection
     if (userId) {
       await deleteDoc(doc(db, 'users', userId, 'tournaments', tournamentId));
     }
@@ -267,5 +285,19 @@ export async function syncUserProfile(user: { uid: string; email?: string | null
     );
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+/**
+ * Resets entire database by deleting all tournament documents
+ */
+export async function resetEntireDatabase(): Promise<void> {
+  try {
+    const snap = await getDocs(collection(db, 'tournaments'));
+    for (const d of snap.docs) {
+      await deleteDoc(d.ref);
+    }
+  } catch (error) {
+    console.error('Error resetting database:', error);
   }
 }

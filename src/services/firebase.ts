@@ -5,7 +5,7 @@
 
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { initializeFirestore, getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import defaultConfig from '../../firebase-applet-config.json';
 
 // Allow environment variables from Vercel / .env or fallback to firebase-applet-config.json
@@ -21,11 +21,10 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// Support both default database and named custom databases
-export const db =
-  firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== '(default)'
-    ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
-    : getFirestore(app);
+// Initialize Firestore with ignoreUndefinedProperties to prevent crashes on optional tournament fields
+export const db = initializeFirestore(app, {
+  ignoreUndefinedProperties: true,
+}, firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== '(default)' ? firebaseConfig.firestoreDatabaseId : undefined);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 

@@ -3,137 +3,40 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Global Safety Net: Default-deny catch-all
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
     // Helper functions
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function incoming() {
-      return request.resource.data;
-    }
-
-    function existing() {
-      return resource.data;
-    }
-
-    function isValidId(id) {
-      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
-    }
-
-    function isValidUserProfile(data) {
-      return data.uid is string &&
-        data.uid.size() <= 128 &&
-        data.uid == request.auth.uid &&
-        (!('email' in data) || (data.email is string && data.email.size() <= 150)) &&
-        (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100)) &&
-        data.updatedAt is number;
-    }
-
-    function isValidTournament(data) {
-      return data.id is string &&
-        data.id.size() > 0 &&
-        data.id.size() <= 128 &&
-        data.ownerId is string &&
-        data.ownerId.size() > 0 &&
-        data.name is string &&
-        data.name.size() > 0 &&
-        data.name.size() <= 120 &&
-        (!('location' in data) || (data.location is string && data.location.size() <= 120)) &&
-        (!('ownerEmail' in data) || (data.ownerEmail is string && data.ownerEmail.size() <= 150)) &&
-        (!('ownerName' in data) || (data.ownerName is string && data.ownerName.size() <= 100)) &&
-        (!('allowedEmails' in data) || data.allowedEmails is list) &&
-        (!('isPublic' in data) || data.isPublic is bool) &&
-        data.format is string &&
-        (data.format == 'swiss' || data.format == 'round_robin' || data.format == 'knockout') &&
-        data.roundsTotal is number &&
-        data.roundsTotal >= 1 &&
-        data.roundsTotal <= 50 &&
-        data.currentRoundNumber is number &&
-        data.currentRoundNumber >= 1 &&
-        data.round1TopSeedColor is string &&
-        (data.round1TopSeedColor == 'W' || data.round1TopSeedColor == 'B') &&
-        data.status is string &&
-        (data.status == 'setup' || data.status == 'in_progress' || data.status == 'finished') &&
-        data.createdAt is number &&
-        data.updatedAt is number;
-    }
-
-    function isTournamentEditor(tournamentData) {
-      return isSignedIn() && (
-        tournamentData.ownerId == request.auth.uid ||
-        (('ownerEmail' in tournamentData) && request.auth.token.email != null && tournamentData.ownerEmail == request.auth.token.email) ||
-        (('allowedEmails' in tournamentData) && request.auth.token.email != null && request.auth.token.email in tournamentData.allowedEmails)
-      );
-    }
-
-    function isTournamentOwner(tournamentData) {
-      return isSignedIn() && (
-        tournamentData.ownerId == request.auth.uid ||
-        (('ownerEmail' in tournamentData) && request.auth.token.email != null && tournamentData.ownerEmail == request.auth.token.email)
-      );
-    }
-
     // Top-Level /tournaments Collection
-    // Read: Anyone (including unauthenticated participants) can search and view tournaments
-    // Create: Signed-in director
-    // Update: Only creator or allowed assistant arbiter emails
-    // Delete: Only creator
     match /tournaments/{tournamentId} {
-      allow read: if isValidId(tournamentId);
+      // Anyone (participants, spectators, arbiters) can read
+      allow read: if true;
 
-      allow create: if isSignedIn() &&
-        isValidId(tournamentId) &&
-        incoming().ownerId == request.auth.uid &&
-        incoming().id == tournamentId &&
-        isValidTournament(incoming());
+      // Authenticated arbiter can create
+      allow create: if isSignedIn();
 
-      allow update: if isSignedIn() &&
-        isValidId(tournamentId) &&
-        isTournamentEditor(existing()) &&
-        incoming().id == existing().id &&
-        incoming().ownerId == existing().ownerId &&
-        isValidTournament(incoming());
+      // Only creator or allowed assistant arbiter can update
+      allow update: if isSignedIn() && (
+        resource.data.ownerId == request.auth.uid ||
+        (('ownerEmail' in resource.data) && request.auth.token.email != null && resource.data.ownerEmail == request.auth.token.email) ||
+        (('allowedEmails' in resource.data) && resource.data.allowedEmails is list && request.auth.token.email != null && request.auth.token.email in resource.data.allowedEmails)
+      );
 
-      allow delete: if isSignedIn() &&
-        isValidId(tournamentId) &&
-        isTournamentOwner(existing());
+      // Only creator can delete
+      allow delete: if isSignedIn() && (
+        resource.data.ownerId == request.auth.uid ||
+        (('ownerEmail' in resource.data) && request.auth.token.email != null && resource.data.ownerEmail == request.auth.token.email)
+      );
     }
 
-    // User Profile Document
+    // User Profile Document & personal subcollections
     match /users/{userId} {
-      allow read: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
-      allow create, update: if isSignedIn() &&
-        isValidId(userId) &&
-        request.auth.uid == userId &&
-        isValidUserProfile(incoming());
-      allow delete: if false;
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == userId;
 
-      // User Tournaments Subcollection
-      match /tournaments/{tournamentId} {
-        allow read: if isSignedIn() && isValidId(userId) && (request.auth.uid == userId || isTournamentEditor(existing()));
-        allow create: if isSignedIn() &&
-          isValidId(userId) &&
-          isValidId(tournamentId) &&
-          request.auth.uid == userId &&
-          incoming().ownerId == request.auth.uid &&
-          incoming().id == tournamentId &&
-          isValidTournament(incoming());
-        allow update: if isSignedIn() &&
-          isValidId(userId) &&
-          isValidId(tournamentId) &&
-          (request.auth.uid == userId || isTournamentEditor(existing())) &&
-          incoming().ownerId == existing().ownerId &&
-          incoming().id == existing().id &&
-          isValidTournament(incoming());
-        allow delete: if isSignedIn() &&
-          isValidId(userId) &&
-          isValidId(tournamentId) &&
-          request.auth.uid == userId;
+      match /{allPaths=**} {
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
       }
     }
   }

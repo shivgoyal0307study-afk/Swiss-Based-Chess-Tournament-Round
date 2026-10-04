@@ -35,25 +35,13 @@ export const CrossTableView: React.FC<CrossTableViewProps> = ({ tournament, stan
     for (const game of round.games) {
       if (!game.result) continue;
 
-      if (game.result === 'BYE_PAB') {
+      if (game.result === 'BYE_PAB' || game.result === 'BYE_HALF') {
         const pId = game.whitePlayerId || game.blackPlayerId;
         if (pId && playerRoundData.has(pId)) {
           playerRoundData.get(pId)!.set(round.roundNumber, {
             text: 'BYE 1',
-            bgClass: 'bg-emerald-950/40 text-emerald-300 font-bold',
-            title: `Round ${round.roundNumber}: Pairing Allocated Bye (+1.0)`,
-          });
-        }
-        continue;
-      }
-
-      if (game.result === 'BYE_HALF') {
-        const pId = game.whitePlayerId || game.blackPlayerId;
-        if (pId && playerRoundData.has(pId)) {
-          playerRoundData.get(pId)!.set(round.roundNumber, {
-            text: 'BYE ½',
-            bgClass: 'bg-neutral-800 text-neutral-300',
-            title: `Round ${round.roundNumber}: Half-Point Bye (+0.5)`,
+            bgClass: 'bg-neutral-900 border border-neutral-700 text-white font-semibold',
+            title: `Round ${round.roundNumber}: Bye (+1.0 point)`,
           });
         }
         continue;
@@ -74,18 +62,18 @@ export const CrossTableView: React.FC<CrossTableViewProps> = ({ tournament, stan
       if (game.result === '1-0' || game.result === '1-0F') {
         wSymbol = `${bSeed}w1`;
         bSymbol = `${wSeed}b0`;
-        wBg = 'bg-emerald-950/40 text-emerald-300 font-semibold';
-        bBg = 'bg-rose-950/30 text-rose-300';
+        wBg = 'bg-white text-black font-semibold';
+        bBg = 'bg-neutral-950 text-neutral-500';
       } else if (game.result === '0-1' || game.result === '0-1F') {
         wSymbol = `${bSeed}w0`;
         bSymbol = `${wSeed}b1`;
-        wBg = 'bg-rose-950/30 text-rose-300';
-        bBg = 'bg-emerald-950/40 text-emerald-300 font-semibold';
+        wBg = 'bg-neutral-950 text-neutral-500';
+        bBg = 'bg-white text-black font-semibold';
       } else if (game.result === '1/2-1/2') {
         wSymbol = `${bSeed}w½`;
         bSymbol = `${wSeed}b½`;
-        wBg = 'bg-neutral-800/80 text-neutral-300';
-        bBg = 'bg-neutral-800/80 text-neutral-300';
+        wBg = 'bg-neutral-900 border border-neutral-800 text-neutral-300 font-medium';
+        bBg = 'bg-neutral-900 border border-neutral-800 text-neutral-300 font-medium';
       }
 
       playerRoundData.get(wId)?.set(round.roundNumber, {
@@ -130,7 +118,7 @@ export const CrossTableView: React.FC<CrossTableViewProps> = ({ tournament, stan
                   </th>
                 ))}
 
-                <th className="py-3 px-3 text-right font-bold text-amber-400">Pts</th>
+                <th className="py-3 px-3 text-right font-bold text-white">Pts</th>
                 <th className="py-3 px-3 text-right" title="Buchholz Cut 1">BH-C1</th>
                 <th className="py-3 px-3 text-right" title="Sonneborn-Berger">SB</th>
               </tr>
@@ -149,7 +137,7 @@ export const CrossTableView: React.FC<CrossTableViewProps> = ({ tournament, stan
 
                 return (
                   <tr key={row.playerId} className="hover:bg-neutral-800/40 transition-colors">
-                    <td className="py-2.5 px-3 text-center font-bold text-amber-300 tabular-nums">
+                    <td className="py-2.5 px-3 text-center font-bold text-white tabular-nums">
                       {row.rank}
                     </td>
 
@@ -160,7 +148,7 @@ export const CrossTableView: React.FC<CrossTableViewProps> = ({ tournament, stan
                     <td className="py-2.5 px-4 font-sans font-medium text-neutral-100">
                       <div className="flex items-center gap-1.5">
                         {row.title && (
-                          <span className="text-[10px] font-bold text-amber-400 font-mono">
+                          <span className="text-[10px] font-bold text-neutral-300 font-mono">
                             {row.title}
                           </span>
                         )}
@@ -196,7 +184,7 @@ export const CrossTableView: React.FC<CrossTableViewProps> = ({ tournament, stan
                       );
                     })}
 
-                    <td className="py-2.5 px-3 text-right font-bold text-amber-400 text-sm tabular-nums">
+                    <td className="py-2.5 px-3 text-right font-bold text-white text-sm tabular-nums">
                       {row.score.toFixed(1)}
                     </td>
 

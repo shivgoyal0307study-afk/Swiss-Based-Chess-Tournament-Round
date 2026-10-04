@@ -44,7 +44,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, total
             <span aria-hidden="true">·</span>
             <button
               onClick={() => setShowTiebreakerHelp(!showTiebreakerHelp)}
-              className="text-amber-400 hover:text-amber-300 underline inline-flex items-center gap-1"
+              className="text-neutral-300 hover:text-white underline inline-flex items-center gap-1"
             >
               <HelpCircle className="w-3.5 h-3.5" />
               Tiebreaker Rules
@@ -60,7 +60,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, total
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-neutral-300 hover:text-white bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded-lg transition-colors shrink-0"
               title="Download PDF of Standings & Tiebreakers"
             >
-              <FileDown className="w-3.5 h-3.5 text-amber-400" />
+              <FileDown className="w-3.5 h-3.5 text-white" />
               <span>Download PDF</span>
             </button>
           )}
@@ -72,7 +72,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, total
               placeholder="Search player or title..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-neutral-900 border border-neutral-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-neutral-100 placeholder-neutral-500 focus:outline-none focus:border-amber-500 transition-colors"
+              className="w-full bg-neutral-900 border border-neutral-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-neutral-100 placeholder-neutral-500 focus:outline-none focus:border-white transition-colors"
             />
           </div>
         </div>
@@ -92,7 +92,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, total
           </div>
           <ol className="list-decimal pl-5 space-y-1 text-neutral-400">
             <li>
-              <strong className="text-neutral-200">Total Points (Pts):</strong> Primary score (1 for win, 0.5 for draw, 0 for loss).
+              <strong className="text-neutral-200">Total Points (Pts):</strong> Primary score (1 for win, 1 for bye, 0.5 for draw, 0 for loss).
             </li>
             <li>
               <strong className="text-neutral-200">Direct Encounter (DE):</strong> Score in mutual games among tied players. Only applied if ALL players in the tied group played each other.
@@ -128,7 +128,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, total
                 <th className="py-2.5 px-3 w-12 text-center">Rank</th>
                 <th className="py-2.5 px-4 min-w-[200px]">Player</th>
                 <th className="py-2.5 px-3 text-right font-medium">Rating</th>
-                <th className="py-2.5 px-3 text-right font-bold text-amber-400">Pts</th>
+                <th className="py-2.5 px-3 text-right font-bold text-white">Pts</th>
                 <th className="py-2.5 px-3 text-right" title="Direct Encounter (Head-to-head)">DE</th>
                 <th className="py-2.5 px-3 text-right" title="Buchholz Cut 1 (lowest opponent dropped)">BH-C1</th>
                 <th className="py-2.5 px-3 text-right" title="Buchholz (Sum of opponent scores)">BH</th>
@@ -164,7 +164,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, total
                     >
                       <td className="py-2.5 px-3 text-center font-mono tabular-nums">
                         {row.rank === 1 ? (
-                          <span className="font-bold text-amber-400">1</span>
+                          <span className="font-bold text-white">1</span>
                         ) : row.rank === 2 ? (
                           <span className="font-semibold text-neutral-200">2</span>
                         ) : row.rank === 3 ? (
@@ -177,15 +177,15 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, total
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           {row.title && (
-                            <span className="text-[11px] font-bold text-amber-400 shrink-0 font-mono">
+                            <span className="text-[11px] font-bold text-white shrink-0 font-mono">
                               {row.title}
                             </span>
                           )}
-                          <span className="font-semibold text-neutral-100 hover:text-amber-300 transition-colors">
+                          <span className="font-semibold text-neutral-100 hover:text-white transition-colors">
                             {row.name}
                           </span>
                           {!row.active && (
-                            <span className="text-[10px] text-rose-400 bg-rose-500/10 px-1 rounded">
+                            <span className="text-[10px] text-neutral-400 bg-neutral-800 px-1 rounded">
                               Withdrawn
                             </span>
                           )}
@@ -196,7 +196,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, total
                         {row.rating}
                       </td>
 
-                      <td className="py-3 px-3 text-right font-mono tabular-nums text-sm font-bold text-amber-400">
+                      <td className="py-3 px-3 text-right font-mono tabular-nums text-sm font-bold text-white">
                         {row.score.toFixed(1)}
                       </td>
 
@@ -283,7 +283,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, total
                                         <tr
                                           key={idx}
                                           className={`hover:bg-neutral-800/30 ${
-                                            isCut ? 'bg-rose-950/10' : ''
+                                            isCut ? 'bg-neutral-900/40 text-neutral-400' : ''
                                           }`}
                                         >
                                           <td className="py-2 px-3 font-mono tabular-nums">
@@ -308,12 +308,12 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, total
                                           <td className="py-2 px-3 text-right font-mono tabular-nums text-neutral-300">
                                             {opp.opponentFinalScore.toFixed(1)}
                                           </td>
-                                          <td className="py-2 px-3 text-right font-mono tabular-nums text-amber-400">
+                                          <td className="py-2 px-3 text-right font-mono tabular-nums text-white font-medium">
                                             {sbEarned.toFixed(2)}
                                           </td>
                                           <td className="py-2 px-3 text-left">
                                             {isCut ? (
-                                              <span className="text-[10px] text-rose-400 font-medium">
+                                              <span className="text-[10px] text-neutral-400 font-mono">
                                                 Excluded for BH-C1 (lowest)
                                               </span>
                                             ) : (

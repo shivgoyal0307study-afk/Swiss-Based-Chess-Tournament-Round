@@ -1,7 +1,8 @@
 /**
  * User Tournaments Manager Modal
- * Displays list of all saved cloud tournaments for the authenticated user,
+ * Displays list of all saved tournaments for the authenticated user,
  * allowing switching, deleting, and creating new tournaments.
+ * Minimalist Black & White UI
  */
 
 import React from 'react';
@@ -28,24 +29,24 @@ export const UserTournamentsModal: React.FC<UserTournamentsModalProps> = ({
   userEmail,
 }) => {
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-neutral-900 border border-neutral-800 rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-xl flex flex-col max-h-[85vh]">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+      <div className="bg-neutral-950 border border-neutral-800 rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl flex flex-col max-h-[85vh]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-neutral-800 border border-neutral-700 flex items-center justify-center text-amber-400">
+            <div className="w-8 h-8 rounded-lg bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white">
               <FolderOpen className="w-4 h-4" />
             </div>
             <div>
               <h3 className="text-sm font-bold text-white">Saved Tournaments</h3>
               <p className="text-xs text-neutral-400">
-                {userEmail || 'Cloud storage'}
+                {userEmail || 'Local & Cloud Storage'}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-neutral-400 hover:text-neutral-200 text-sm p-1.5 rounded-lg hover:bg-neutral-800 transition-colors"
+            className="text-neutral-400 hover:text-white text-sm p-1.5 rounded-lg hover:bg-neutral-900 transition-colors"
           >
             ✕
           </button>
@@ -61,10 +62,10 @@ export const UserTournamentsModal: React.FC<UserTournamentsModalProps> = ({
               onClose();
               onNewTournament();
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-amber-400 hover:bg-amber-300 text-neutral-950 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-white hover:bg-neutral-200 text-black rounded-lg transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>+ New Tournament</span>
+            <span>New Tournament</span>
           </button>
         </div>
 
@@ -73,9 +74,9 @@ export const UserTournamentsModal: React.FC<UserTournamentsModalProps> = ({
           {tournaments.length === 0 ? (
             <div className="h-44 border border-dashed border-neutral-800 rounded-xl flex flex-col items-center justify-center text-center p-6 text-neutral-500 text-xs">
               <Trophy className="w-8 h-8 text-neutral-600 mb-2 opacity-50" />
-              <p className="font-medium text-neutral-400">No tournaments saved yet</p>
-              <p className="text-neutral-600 mt-1">
-                Your tournaments and current round progress will automatically sync here as you create and run events.
+              <p className="font-medium text-neutral-300">No tournaments saved yet</p>
+              <p className="text-neutral-500 mt-1">
+                Your tournaments and current round progress will automatically appear here.
               </p>
             </div>
           ) : (
@@ -93,46 +94,38 @@ export const UserTournamentsModal: React.FC<UserTournamentsModalProps> = ({
                   key={t.id}
                   className={`p-3.5 rounded-xl border transition-all flex items-center justify-between gap-3 ${
                     isCurrent
-                      ? 'bg-amber-400/5 border-amber-500/40 ring-1 ring-amber-500/20'
-                      : 'bg-neutral-950/60 border-neutral-800/80 hover:border-neutral-700 hover:bg-neutral-950'
+                      ? 'bg-neutral-900 border-white/40 ring-1 ring-white/20'
+                      : 'bg-neutral-900/60 border-neutral-800 hover:border-neutral-700'
                   }`}
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="text-sm font-semibold text-neutral-200 truncate">{t.name}</h4>
+                      <h4 className="text-sm font-semibold text-white truncate">{t.name}</h4>
                       {isCurrent && (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-400/10 text-amber-400 border border-amber-400/30">
-                          <Check className="w-2.5 h-2.5" /> Active Now
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-white text-black">
+                          <Check className="w-2.5 h-2.5" /> Active
                         </span>
                       )}
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-neutral-800 text-neutral-300">
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-neutral-800 text-neutral-300 border border-neutral-700">
                         {formatLabel}
                       </span>
-                      <span
-                        className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                          t.status === 'finished'
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                            : t.status === 'in_progress'
-                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                            : 'bg-neutral-800 text-neutral-400'
-                        }`}
-                      >
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-neutral-800 text-neutral-300 border border-neutral-700">
                         {t.status === 'finished'
                           ? 'Finished'
                           : t.status === 'in_progress'
-                          ? `Round ${t.currentRoundNumber || 1} of ${t.roundsTotal}`
+                          ? `Round ${t.currentRoundNumber || 1}/${t.roundsTotal}`
                           : 'Setup'}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-4 mt-2 text-xs text-neutral-400">
+                    <div className="flex items-center gap-4 mt-2 text-xs text-neutral-400 font-mono">
                       <span className="flex items-center gap-1">
-                        <Users className="w-3 h-3 text-neutral-500" />
+                        <Users className="w-3 h-3 text-neutral-400" />
                         {t.players?.length || 0} Players
                       </span>
                       <span className="flex items-center gap-1">
-                        <Trophy className="w-3 h-3 text-neutral-500" />
-                        {t.rounds?.length || 0} / {t.roundsTotal} Rounds Paired
+                        <Trophy className="w-3 h-3 text-neutral-400" />
+                        {t.rounds?.length || 0} / {t.roundsTotal} Rounds
                       </span>
                       {t.updatedAt && (
                         <span className="flex items-center gap-1 text-[11px] text-neutral-500">
@@ -155,7 +148,7 @@ export const UserTournamentsModal: React.FC<UserTournamentsModalProps> = ({
                           onSelectTournament(t);
                           onClose();
                         }}
-                        className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-neutral-200 bg-neutral-800 hover:bg-neutral-700 hover:text-white rounded-lg transition-all"
+                        className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-black bg-white hover:bg-neutral-200 rounded-lg transition-all"
                       >
                         Open
                         <ArrowRight className="w-3 h-3" />
@@ -167,7 +160,7 @@ export const UserTournamentsModal: React.FC<UserTournamentsModalProps> = ({
                           onDeleteTournament(t.id);
                         }
                       }}
-                      className="p-1.5 text-neutral-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all"
+                      className="p-1.5 text-neutral-500 hover:text-white hover:bg-neutral-800 rounded-lg transition-all"
                       title="Delete Tournament"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -183,7 +176,7 @@ export const UserTournamentsModal: React.FC<UserTournamentsModalProps> = ({
         <div className="border-t border-neutral-800 pt-3 flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-1.5 text-xs font-medium text-neutral-300 hover:text-white bg-neutral-800 hover:bg-neutral-700 rounded-lg transition-all"
+            className="px-4 py-1.5 text-xs font-medium text-neutral-300 hover:text-white bg-neutral-900 hover:bg-neutral-800 rounded-lg border border-neutral-800 transition-all"
           >
             Close
           </button>

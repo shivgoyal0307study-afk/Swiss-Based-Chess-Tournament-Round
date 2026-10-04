@@ -64,11 +64,11 @@ export const NewTournamentModal: React.FC<NewTournamentModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-neutral-900 border border-neutral-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-xl">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+      <div className="bg-neutral-950 border border-neutral-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
         <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
           <h3 className="text-sm font-bold text-white">Create Tournament</h3>
-          <button onClick={onClose} className="text-neutral-400 hover:text-neutral-200 text-sm p-1 rounded hover:bg-neutral-800">
+          <button onClick={onClose} className="text-neutral-400 hover:text-white text-sm p-1 rounded hover:bg-neutral-900 transition-colors">
             ✕
           </button>
         </div>
@@ -82,7 +82,7 @@ export const NewTournamentModal: React.FC<NewTournamentModalProps> = ({
               placeholder="e.g. Autumn Masters Championship"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-neutral-100 placeholder-neutral-600 focus:outline-none focus:border-amber-500"
+              className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-white placeholder-neutral-500 focus:outline-none focus:border-white transition-colors"
             />
           </div>
 
@@ -94,12 +94,12 @@ export const NewTournamentModal: React.FC<NewTournamentModalProps> = ({
                 onClick={() => handleFormatChange('swiss')}
                 className={`py-2 px-3 rounded-lg border text-left transition-all ${
                   format === 'swiss'
-                    ? 'bg-amber-400/10 border-amber-500 text-amber-400 font-semibold'
-                    : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-neutral-200'
+                    ? 'bg-white text-black font-semibold border-white'
+                    : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white'
                 }`}
               >
                 <div className="text-xs">FIDE Swiss</div>
-                <div className="text-[10px] text-neutral-500 mt-0.5 font-normal">Dutch System</div>
+                <div className={`text-[10px] mt-0.5 font-normal ${format === 'swiss' ? 'text-neutral-700' : 'text-neutral-500'}`}>Dutch System</div>
               </button>
 
               <button
@@ -107,12 +107,12 @@ export const NewTournamentModal: React.FC<NewTournamentModalProps> = ({
                 onClick={() => handleFormatChange('round_robin')}
                 className={`py-2 px-3 rounded-lg border text-left transition-all ${
                   format === 'round_robin'
-                    ? 'bg-amber-400/10 border-amber-500 text-amber-400 font-semibold'
-                    : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-neutral-200'
+                    ? 'bg-white text-black font-semibold border-white'
+                    : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white'
                 }`}
               >
                 <div className="text-xs">Round-Robin</div>
-                <div className="text-[10px] text-neutral-500 mt-0.5 font-normal">Berger Tables</div>
+                <div className={`text-[10px] mt-0.5 font-normal ${format === 'round_robin' ? 'text-neutral-700' : 'text-neutral-500'}`}>Berger Tables</div>
               </button>
 
               <button
@@ -120,12 +120,12 @@ export const NewTournamentModal: React.FC<NewTournamentModalProps> = ({
                 onClick={() => handleFormatChange('knockout')}
                 className={`py-2 px-3 rounded-lg border text-left transition-all ${
                   format === 'knockout'
-                    ? 'bg-amber-400/10 border-amber-500 text-amber-400 font-semibold'
-                    : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-neutral-200'
+                    ? 'bg-white text-black font-semibold border-white'
+                    : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white'
                 }`}
               >
                 <div className="text-xs">Knockout</div>
-                <div className="text-[10px] text-neutral-500 mt-0.5 font-normal">Elimination Bracket</div>
+                <div className={`text-[10px] mt-0.5 font-normal ${format === 'knockout' ? 'text-neutral-700' : 'text-neutral-500'}`}>Elimination Bracket</div>
               </button>
             </div>
           </div>
@@ -138,7 +138,7 @@ export const NewTournamentModal: React.FC<NewTournamentModalProps> = ({
                 placeholder="Optional"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-neutral-100 placeholder-neutral-600 focus:outline-none focus:border-amber-500"
+                className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-white placeholder-neutral-500 focus:outline-none focus:border-white transition-colors"
               />
             </div>
             <div>
@@ -149,7 +149,7 @@ export const NewTournamentModal: React.FC<NewTournamentModalProps> = ({
                 max={50}
                 value={roundsTotal}
                 onChange={(e) => setRoundsTotal(Number(e.target.value))}
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-neutral-100 font-mono focus:outline-none focus:border-amber-500"
+                className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-white transition-colors"
               />
             </div>
           </div>
@@ -164,8 +164,8 @@ export const NewTournamentModal: React.FC<NewTournamentModalProps> = ({
                 onClick={() => setTopSeedColor('W')}
                 className={`flex-1 py-1.5 px-3 rounded-lg border font-mono font-medium transition-colors ${
                   topSeedColor === 'W'
-                    ? 'bg-neutral-200 text-neutral-950 border-white'
-                    : 'bg-neutral-950 text-neutral-400 border-neutral-800'
+                    ? 'bg-white text-black border-white font-bold'
+                    : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:text-white'
                 }`}
               >
                 White
@@ -175,8 +175,8 @@ export const NewTournamentModal: React.FC<NewTournamentModalProps> = ({
                 onClick={() => setTopSeedColor('B')}
                 className={`flex-1 py-1.5 px-3 rounded-lg border font-mono font-medium transition-colors ${
                   topSeedColor === 'B'
-                    ? 'bg-neutral-800 text-neutral-100 border-neutral-600'
-                    : 'bg-neutral-950 text-neutral-400 border-neutral-800'
+                    ? 'bg-neutral-800 text-white border-neutral-600 font-bold'
+                    : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:text-white'
                 }`}
               >
                 Black
@@ -189,13 +189,13 @@ export const NewTournamentModal: React.FC<NewTournamentModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-3.5 py-1.5 text-xs text-neutral-300 hover:text-white bg-neutral-800 hover:bg-neutral-700 rounded-lg transition-colors"
+              className="px-3.5 py-1.5 text-xs text-neutral-400 hover:text-white bg-neutral-900 hover:bg-neutral-800 rounded-lg border border-neutral-800 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-1.5 text-xs font-semibold bg-amber-400 hover:bg-amber-300 text-neutral-950 rounded-lg transition-colors"
+              className="px-4 py-1.5 text-xs font-semibold bg-white hover:bg-neutral-200 text-black rounded-lg transition-colors"
             >
               Create Tournament
             </button>

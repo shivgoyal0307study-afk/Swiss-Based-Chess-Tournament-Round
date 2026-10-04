@@ -23,8 +23,8 @@ export const RulesAuditModal: React.FC<RulesAuditModalProps> = ({ tournament }) 
           <div
             className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
               report.isValid
-                ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
-                : 'bg-rose-500/10 border border-rose-500/30 text-rose-400'
+                ? 'bg-neutral-950 border border-neutral-700 text-white'
+                : 'bg-neutral-950 border border-neutral-700 text-neutral-300'
             }`}
           >
             {report.isValid ? <ShieldCheck className="w-6 h-6" /> : <AlertTriangle className="w-6 h-6" />}
@@ -35,11 +35,11 @@ export const RulesAuditModal: React.FC<RulesAuditModalProps> = ({ tournament }) 
                 FIDE Dutch Swiss Invariants Audit (C.04.3)
               </h2>
               {report.isValid ? (
-                <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                <span className="text-[11px] font-semibold text-white bg-neutral-800 px-2 py-0.5 rounded-full border border-neutral-700">
                   100% FIDE Compliant
                 </span>
               ) : (
-                <span className="text-[11px] font-semibold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">
+                <span className="text-[11px] font-semibold text-white bg-neutral-800 px-2 py-0.5 rounded-full border border-neutral-700">
                   {report.violations.length} Violations Detected
                 </span>
               )}
@@ -85,14 +85,14 @@ export const RulesAuditModal: React.FC<RulesAuditModalProps> = ({ tournament }) 
         {/* C1 */}
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="font-mono text-xs font-bold text-amber-400">Criterion C1</span>
+            <span className="font-mono text-xs font-bold text-white">Criterion C1</span>
             {report.c1Passed ? (
-              <span className="text-emerald-400 flex items-center gap-1 text-xs font-medium">
-                <CheckCircle2 className="w-4 h-4" /> Passed
+              <span className="text-white flex items-center gap-1 text-xs font-medium">
+                <CheckCircle2 className="w-4 h-4 text-white" /> Passed
               </span>
             ) : (
-              <span className="text-rose-400 flex items-center gap-1 text-xs font-medium">
-                <XCircle className="w-4 h-4" /> Violation
+              <span className="text-neutral-400 flex items-center gap-1 text-xs font-medium">
+                <XCircle className="w-4 h-4 text-neutral-400" /> Violation
               </span>
             )}
           </div>
@@ -106,14 +106,14 @@ export const RulesAuditModal: React.FC<RulesAuditModalProps> = ({ tournament }) 
         {/* C2 */}
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="font-mono text-xs font-bold text-amber-400">Criterion C2</span>
+            <span className="font-mono text-xs font-bold text-white">Criterion C2</span>
             {report.c2Passed ? (
-              <span className="text-emerald-400 flex items-center gap-1 text-xs font-medium">
-                <CheckCircle2 className="w-4 h-4" /> Passed
+              <span className="text-white flex items-center gap-1 text-xs font-medium">
+                <CheckCircle2 className="w-4 h-4 text-white" /> Passed
               </span>
             ) : (
-              <span className="text-rose-400 flex items-center gap-1 text-xs font-medium">
-                <XCircle className="w-4 h-4" /> Violation
+              <span className="text-neutral-400 flex items-center gap-1 text-xs font-medium">
+                <XCircle className="w-4 h-4 text-neutral-400" /> Violation
               </span>
             )}
           </div>
@@ -127,14 +127,14 @@ export const RulesAuditModal: React.FC<RulesAuditModalProps> = ({ tournament }) 
         {/* C3 */}
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="font-mono text-xs font-bold text-amber-400">Criterion C3</span>
+            <span className="font-mono text-xs font-bold text-white">Criterion C3</span>
             {report.c3Passed ? (
-              <span className="text-emerald-400 flex items-center gap-1 text-xs font-medium">
-                <CheckCircle2 className="w-4 h-4" /> Passed
+              <span className="text-white flex items-center gap-1 text-xs font-medium">
+                <CheckCircle2 className="w-4 h-4 text-white" /> Passed
               </span>
             ) : (
-              <span className="text-rose-400 flex items-center gap-1 text-xs font-medium">
-                <XCircle className="w-4 h-4" /> Violation
+              <span className="text-neutral-400 flex items-center gap-1 text-xs font-medium">
+                <XCircle className="w-4 h-4 text-neutral-400" /> Violation
               </span>
             )}
           </div>
@@ -148,14 +148,14 @@ export const RulesAuditModal: React.FC<RulesAuditModalProps> = ({ tournament }) 
         {/* C4 */}
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="font-mono text-xs font-bold text-amber-400">Criterion C4</span>
+            <span className="font-mono text-xs font-bold text-white">Criterion C4</span>
             {report.c4Passed ? (
-              <span className="text-emerald-400 flex items-center gap-1 text-xs font-medium">
-                <CheckCircle2 className="w-4 h-4" /> Passed
+              <span className="text-white flex items-center gap-1 text-xs font-medium">
+                <CheckCircle2 className="w-4 h-4 text-white" /> Passed
               </span>
             ) : (
-              <span className="text-rose-400 flex items-center gap-1 text-xs font-medium">
-                <XCircle className="w-4 h-4" /> Violation
+              <span className="text-neutral-400 flex items-center gap-1 text-xs font-medium">
+                <XCircle className="w-4 h-4 text-neutral-400" /> Violation
               </span>
             )}
           </div>
@@ -168,19 +168,19 @@ export const RulesAuditModal: React.FC<RulesAuditModalProps> = ({ tournament }) 
 
       {/* Violation Detail Log if any */}
       {report.violations.length > 0 && (
-        <div className="bg-rose-950/20 border border-rose-900/50 rounded-xl p-5 space-y-3">
-          <h3 className="text-sm font-semibold text-rose-300 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4" />
+        <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-5 space-y-3">
+          <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-white" />
             Violations Audit Log ({report.violations.length})
           </h3>
           <div className="space-y-2">
             {report.violations.map((v, idx) => (
               <div
                 key={idx}
-                className="bg-neutral-900/90 border border-rose-900/30 rounded-lg p-3 text-xs space-y-1"
+                className="bg-neutral-900 border border-neutral-800 rounded-lg p-3 text-xs space-y-1"
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-rose-400">{v.title}</span>
+                  <span className="font-bold text-white">{v.title}</span>
                   {v.roundNumber && (
                     <span className="font-mono text-neutral-500">Round {v.roundNumber}</span>
                   )}

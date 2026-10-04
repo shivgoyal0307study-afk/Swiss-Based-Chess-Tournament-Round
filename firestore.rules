@@ -16,15 +16,20 @@ service cloud.firestore {
       // Authenticated arbiter can create
       allow create: if isSignedIn();
 
-      // Only creator or allowed assistant arbiter can update
+      // Only creator, allowed assistant arbiter, claimer of anonymous tournament, or Super Admin can update
       allow update: if isSignedIn() && (
+        request.auth.token.email == 'shivgoyal0307@gmail.com' ||
         resource.data.ownerId == request.auth.uid ||
+        resource.data.ownerId == 'anonymous' ||
+        resource.data.ownerId == 'local_user' ||
+        !('ownerId' in resource.data) ||
         (('ownerEmail' in resource.data) && request.auth.token.email != null && resource.data.ownerEmail == request.auth.token.email) ||
         (('allowedEmails' in resource.data) && resource.data.allowedEmails is list && request.auth.token.email != null && request.auth.token.email in resource.data.allowedEmails)
       );
 
-      // Only creator can delete
+      // Only creator or Super Admin can delete
       allow delete: if isSignedIn() && (
+        request.auth.token.email == 'shivgoyal0307@gmail.com' ||
         resource.data.ownerId == request.auth.uid ||
         (('ownerEmail' in resource.data) && request.auth.token.email != null && resource.data.ownerEmail == request.auth.token.email)
       );
@@ -33,11 +38,23 @@ service cloud.firestore {
     // User Profile Document & personal subcollections
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn() && request.auth.uid == userId;
+      allow write: if isSignedIn() && (request.auth.uid == userId || request.auth.token.email == 'shivgoyal0307@gmail.com');
 
       match /{allPaths=**} {
-        allow read, write: if isSignedIn() && request.auth.uid == userId;
+        allow read, write: if isSignedIn() && (request.auth.uid == userId || request.auth.token.email == 'shivgoyal0307@gmail.com');
       }
+    }
+
+    // Director Account Approval Requests
+    match /director_requests/{userId} {
+      // Anyone signed in can read (needed for listing in Super Admin portal and checking status)
+      allow read: if isSignedIn();
+      // User can submit their own request; Super Admin can create pre-approvals
+      allow create: if isSignedIn();
+      // Super Admin or the requesting user can update
+      allow update: if isSignedIn() && (request.auth.token.email == 'shivgoyal0307@gmail.com' || request.auth.uid == userId);
+      // Only Super Admin can delete
+      allow delete: if isSignedIn() && request.auth.token.email == 'shivgoyal0307@gmail.com';
     }
   }
 }

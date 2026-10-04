@@ -74,30 +74,30 @@ export const ExportImportModal: React.FC<ExportImportModalProps> = ({
   const currentRoundNum = tournament.rounds.length > 0 ? tournament.rounds.length : 1;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-neutral-900 border border-neutral-800 rounded-2xl max-w-2xl w-full overflow-hidden shadow-xl flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+      <div className="bg-neutral-950 border border-neutral-800 rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
         {/* Modal Header */}
         <div className="p-4 border-b border-neutral-800 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <FileText className="w-4 h-4 text-amber-400" />
+            <FileText className="w-4 h-4 text-white" />
             <h3 className="text-sm font-bold text-white">Export & Download Documents</h3>
           </div>
           <button
             onClick={onClose}
-            className="text-neutral-400 hover:text-neutral-200 text-sm p-1 rounded hover:bg-neutral-800"
+            className="text-neutral-400 hover:text-white text-sm p-1 rounded hover:bg-neutral-900 transition-colors"
           >
             ✕
           </button>
         </div>
 
         {/* Modal Navigation */}
-        <div className="flex border-b border-neutral-800 bg-neutral-950 px-4 gap-2 pt-2 text-xs font-semibold">
+        <div className="flex border-b border-neutral-800 bg-black px-4 gap-2 pt-2 text-xs font-semibold">
           <button
             onClick={() => setActiveTab('pdf')}
             className={`px-3 py-2 border-b-2 transition-colors flex items-center gap-1.5 ${
               activeTab === 'pdf'
-                ? 'border-amber-400 text-amber-400'
-                : 'border-transparent text-neutral-400 hover:text-neutral-200'
+                ? 'border-white text-white'
+                : 'border-transparent text-neutral-400 hover:text-white'
             }`}
           >
             <FileDown className="w-3.5 h-3.5" />
@@ -107,8 +107,8 @@ export const ExportImportModal: React.FC<ExportImportModalProps> = ({
             onClick={() => setActiveTab('csv')}
             className={`px-3 py-2 border-b-2 transition-colors ${
               activeTab === 'csv'
-                ? 'border-amber-400 text-amber-400'
-                : 'border-transparent text-neutral-400 hover:text-neutral-200'
+                ? 'border-white text-white'
+                : 'border-transparent text-neutral-400 hover:text-white'
             }`}
           >
             CSV Standings
@@ -117,8 +117,8 @@ export const ExportImportModal: React.FC<ExportImportModalProps> = ({
             onClick={() => setActiveTab('export')}
             className={`px-3 py-2 border-b-2 transition-colors ${
               activeTab === 'export'
-                ? 'border-amber-400 text-amber-400'
-                : 'border-transparent text-neutral-400 hover:text-neutral-200'
+                ? 'border-white text-white'
+                : 'border-transparent text-neutral-400 hover:text-white'
             }`}
           >
             JSON Backup
@@ -127,8 +127,8 @@ export const ExportImportModal: React.FC<ExportImportModalProps> = ({
             onClick={() => setActiveTab('import')}
             className={`px-3 py-2 border-b-2 transition-colors ${
               activeTab === 'import'
-                ? 'border-amber-400 text-amber-400'
-                : 'border-transparent text-neutral-400 hover:text-neutral-200'
+                ? 'border-white text-white'
+                : 'border-transparent text-neutral-400 hover:text-white'
             }`}
           >
             Restore Backup
@@ -146,7 +146,7 @@ export const ExportImportModal: React.FC<ExportImportModalProps> = ({
 
               <div className="grid sm:grid-cols-2 gap-3">
                 {/* Standings PDF */}
-                <div className="p-4 rounded-xl bg-neutral-950 border border-neutral-800 space-y-3 flex flex-col justify-between">
+                <div className="p-4 rounded-xl bg-neutral-900 border border-neutral-800 space-y-3 flex flex-col justify-between">
                   <div className="space-y-1">
                     <span className="font-bold text-white text-xs block">Official Standings PDF</span>
                     <p className="text-[11px] text-neutral-400">
@@ -155,15 +155,15 @@ export const ExportImportModal: React.FC<ExportImportModalProps> = ({
                   </div>
                   <button
                     onClick={() => exportStandingsPdf(tournament, standings)}
-                    className="w-full py-2 px-3 bg-amber-400 hover:bg-amber-300 text-neutral-950 font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5"
+                    className="w-full py-2 px-3 bg-white hover:bg-neutral-200 text-black font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5"
                   >
-                    <FileDown className="w-3.5 h-3.5" />
+                    <FileDown className="w-3.5 h-3.5 text-black" />
                     <span>Download Standings PDF</span>
                   </button>
                 </div>
 
                 {/* Round Pairings PDF */}
-                <div className="p-4 rounded-xl bg-neutral-950 border border-neutral-800 space-y-3 flex flex-col justify-between">
+                <div className="p-4 rounded-xl bg-neutral-900 border border-neutral-800 space-y-3 flex flex-col justify-between">
                   <div className="space-y-1">
                     <span className="font-bold text-white text-xs block">
                       Round {currentRoundNum} Pairings PDF
@@ -174,9 +174,9 @@ export const ExportImportModal: React.FC<ExportImportModalProps> = ({
                   </div>
                   <button
                     onClick={() => exportPairingsPdf(tournament, currentRoundNum, standings)}
-                    className="w-full py-2 px-3 bg-amber-400 hover:bg-amber-300 text-neutral-950 font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5"
+                    className="w-full py-2 px-3 bg-white hover:bg-neutral-200 text-black font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5"
                   >
-                    <FileDown className="w-3.5 h-3.5" />
+                    <FileDown className="w-3.5 h-3.5 text-black" />
                     <span>Download Round {currentRoundNum} PDF</span>
                   </button>
                 </div>
@@ -184,16 +184,16 @@ export const ExportImportModal: React.FC<ExportImportModalProps> = ({
 
               {/* All Rounds Quick Export */}
               {tournament.rounds.length > 1 && (
-                <div className="space-y-2 pt-2 border-t border-neutral-850">
+                <div className="space-y-2 pt-2 border-t border-neutral-800">
                   <span className="font-semibold text-neutral-300 block">Download Previous Round Pairings:</span>
                   <div className="flex flex-wrap gap-2">
                     {tournament.rounds.map((r) => (
                       <button
                         key={r.roundNumber}
                         onClick={() => exportPairingsPdf(tournament, r.roundNumber, standings)}
-                        className="px-2.5 py-1 text-xs bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded-md transition-colors flex items-center gap-1"
+                        className="px-2.5 py-1 text-xs bg-neutral-900 hover:bg-neutral-800 text-neutral-200 border border-neutral-800 rounded-md transition-colors flex items-center gap-1"
                       >
-                        <FileDown className="w-3 h-3 text-amber-400" />
+                        <FileDown className="w-3 h-3 text-white" />
                         <span>Round {r.roundNumber} PDF</span>
                       </button>
                     ))}
@@ -211,9 +211,9 @@ export const ExportImportModal: React.FC<ExportImportModalProps> = ({
               </p>
               <button
                 onClick={handleDownloadCsv}
-                className="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-neutral-950 font-semibold rounded-lg transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-white hover:bg-neutral-200 text-black font-semibold rounded-lg transition-colors flex items-center gap-2"
               >
-                <Download className="w-4 h-4" />
+                <Download className="w-4 h-4 text-black" />
                 <span>Download Standings CSV</span>
               </button>
             </div>
@@ -228,23 +228,23 @@ export const ExportImportModal: React.FC<ExportImportModalProps> = ({
               <div className="flex gap-2">
                 <button
                   onClick={handleDownloadJson}
-                  className="px-3.5 py-1.5 bg-amber-400 hover:bg-amber-300 text-neutral-950 font-semibold rounded-lg transition-colors flex items-center gap-1.5"
+                  className="px-3.5 py-1.5 bg-white hover:bg-neutral-200 text-black font-semibold rounded-lg transition-colors flex items-center gap-1.5"
                 >
-                  <Download className="w-3.5 h-3.5" />
+                  <Download className="w-3.5 h-3.5 text-black" />
                   <span>Download .json Backup</span>
                 </button>
                 <button
                   onClick={handleCopyJson}
-                  className="px-3.5 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded-lg transition-colors flex items-center gap-1.5"
+                  className="px-3.5 py-1.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-200 rounded-lg transition-colors flex items-center gap-1.5"
                 >
-                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copied ? <Check className="w-3.5 h-3.5 text-white" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>{copied ? 'Copied' : 'Copy JSON'}</span>
                 </button>
               </div>
               <textarea
                 readOnly
                 value={jsonString}
-                className="w-full h-44 bg-neutral-950 border border-neutral-800 rounded-xl p-3 font-mono text-[11px] text-neutral-400 focus:outline-none"
+                className="w-full h-44 bg-neutral-900 border border-neutral-800 rounded-xl p-3 font-mono text-[11px] text-neutral-300 focus:outline-none"
               />
             </div>
           )}
@@ -256,7 +256,7 @@ export const ExportImportModal: React.FC<ExportImportModalProps> = ({
                 Paste raw tournament JSON to restore tournament data:
               </p>
               {importError && (
-                <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs">
+                <div className="p-2.5 rounded-lg bg-neutral-900 border border-neutral-700 text-neutral-200 text-xs">
                   {importError}
                 </div>
               )}
@@ -265,11 +265,11 @@ export const ExportImportModal: React.FC<ExportImportModalProps> = ({
                 placeholder="Paste tournament JSON here..."
                 value={importJson}
                 onChange={(e) => setImportJson(e.target.value)}
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-3 font-mono text-[11px] text-neutral-200 focus:outline-none focus:border-amber-400"
+                className="w-full bg-neutral-900 border border-neutral-800 rounded-xl p-3 font-mono text-[11px] text-white focus:outline-none focus:border-white transition-colors"
               />
               <button
                 onClick={handleImportSubmit}
-                className="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-neutral-950 font-semibold rounded-lg transition-colors"
+                className="px-4 py-2 bg-white hover:bg-neutral-200 text-black font-semibold rounded-lg transition-colors"
               >
                 Restore Tournament Data
               </button>

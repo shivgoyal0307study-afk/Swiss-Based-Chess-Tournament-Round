@@ -35,6 +35,9 @@ import { UserTournamentsModal } from './components/UserTournamentsModal';
 import { ParticipantSearchModal } from './components/ParticipantSearchModal';
 import { ShareAccessModal } from './components/ShareAccessModal';
 import { AuthPage } from './components/AuthPage';
+import { PendingApprovalView } from './components/PendingApprovalView';
+import { AdminPortalModal } from './components/AdminPortalModal';
+import { getDirectorStatus, isSuperAdmin } from './services/adminService';
 
 const STORAGE_KEY = 'en_passant_chess_tournament_v4';
 const PARTICIPANT_KEY = 'en_passant_participant_mode';
@@ -128,10 +131,13 @@ export default function App() {
   const [showNewTourneyModal, setShowNewTourneyModal] = useState<boolean>(false);
   const [showExportModal, setShowExportModal] = useState<boolean>(false);
   const [showRulesModal, setShowRulesModal] = useState<boolean>(false);
+  const [showAdminPortalModal, setShowAdminPortalModal] = useState<boolean>(false);
+  const [directorStatus, setDirectorStatus] = useState<'approved' | 'pending' | 'rejected' | null>(null);
   const [firestoreRulesNotice, setFirestoreRulesNotice] = useState<boolean>(false);
   const [bannerMessage, setBannerMessage] = useState<string | null>(null);
 
   const isInitialLoadRef = useRef(true);
+  const prevRoundsCountRef = useRef(tournament.rounds.length);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Test Firestore connection on mount
@@ -144,9 +150,10 @@ export default function App() {
   }, []);
 
   // Access Control / RBAC:
-  // Can edit: Creator of tournament OR email in allowedEmails
+  // Can edit: Creator of tournament OR email in allowedEmails (Requires approved director account or Super Admin)
   const canEdit = Boolean(
     currentUser &&
+      (directorStatus === 'approved' || isSuperAdmin(currentUser.email)) &&
       tournament &&
       (
         tournament.ownerId === currentUser.uid ||
@@ -171,57 +178,66 @@ export default function App() {
       setAuthInitialized(true);
 
       if (user) {
-        // Authenticated as arbiter: exit participant mode
+        // Authenticated: exit participant mode
         setIsParticipant(false);
         localStorage.removeItem(PARTICIPANT_KEY);
         syncUserProfile(user).catch(console.error);
 
+        // Verify Director approval status
+        const status = await getDirectorStatus(user);
+        setDirectorStatus(status);
+
+        if (status !== 'approved' && !isSuperAdmin(user.email)) {
+          setIsSyncing(false);
+          isInitialLoadRef.current = false;
+          return;
+        }
+
         try {
           setIsSyncing(true);
           const cloudTournaments = await listUserTournaments(user.uid, user.email);
-          setUserTournaments(cloudTournaments);
+          const allKnown = getAllKnownTournaments();
+          
+          // Merge local and cloud tournaments without losing any
+          const mergedMap = new Map<string, Tournament>();
+          allKnown.forEach((t) => {
+            if (t && t.id) mergedMap.set(t.id, t);
+          });
+          cloudTournaments.forEach((t) => {
+            if (t && t.id) {
+              const existing = mergedMap.get(t.id);
+              if (!existing || (t.updatedAt || 0) >= (existing.updatedAt || 0)) {
+                mergedMap.set(t.id, t);
+              }
+            }
+          });
+          const combined = Array.from(mergedMap.values());
+          combined.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 
-          if (cloudTournaments.length > 0) {
+          setUserTournaments(combined);
+
+          if (combined.length > 0) {
             const lastActiveId = localStorage.getItem(`en_passant_user_active_${user.uid}`);
             const match =
-              cloudTournaments.find((t) => t.id === lastActiveId) ||
-              cloudTournaments.find((t) => t.id === tournament.id) ||
-              cloudTournaments[0];
+              combined.find((t) => t.id === lastActiveId) ||
+              combined.find((t) => t.id === tournament?.id) ||
+              combined[0];
 
             setTournament(match);
             setSelectedRoundNumber(match.currentRoundNumber || match.rounds.length || 1);
             localStorage.setItem(`en_passant_user_active_${user.uid}`, match.id);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(match));
+            saveToAllKnownTournaments(match);
           } else {
-            // Check all known tournaments in the browser to never wipe out user work!
-            const allKnown = getAllKnownTournaments();
-            if (allKnown.length > 0) {
-              const match =
-                allKnown.find((t) => t.ownerId === user.uid || (user.email && t.ownerEmail?.toLowerCase() === user.email.toLowerCase())) ||
-                allKnown[0];
-              const claimed: Tournament = {
-                ...match,
-                ownerId: match.ownerId || user.uid,
-                ownerEmail: match.ownerEmail || user.email || undefined,
-                ownerName: match.ownerName || user.displayName || undefined,
-                updatedAt: Date.now(),
-              };
-              setTournament(claimed);
-              setUserTournaments([claimed]);
-              setSelectedRoundNumber(claimed.currentRoundNumber || claimed.rounds.length || 1);
-              localStorage.setItem(`en_passant_user_active_${user.uid}`, claimed.id);
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(claimed));
-              saveTournamentToFirestore(user.uid, claimed, user.email, user.displayName).catch(console.warn);
-            } else {
-              // Brand new user with 0 tournaments: create initial isolated tournament
-              const initialTourney = createDefaultTournamentForUser(user.uid, user.email, user.displayName);
-              setTournament(initialTourney);
-              setSelectedRoundNumber(1);
-              localStorage.setItem(`en_passant_user_active_${user.uid}`, initialTourney.id);
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(initialTourney));
-              saveTournamentToFirestore(user.uid, initialTourney, user.email, user.displayName).catch(console.warn);
-              setUserTournaments([initialTourney]);
-            }
+            // Brand new user with 0 tournaments: create initial isolated tournament
+            const initialTourney = createDefaultTournamentForUser(user.uid, user.email, user.displayName);
+            setTournament(initialTourney);
+            setSelectedRoundNumber(1);
+            localStorage.setItem(`en_passant_user_active_${user.uid}`, initialTourney.id);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(initialTourney));
+            saveToAllKnownTournaments(initialTourney);
+            saveTournamentToFirestore(user.uid, initialTourney, user.email, user.displayName).catch(console.warn);
+            setUserTournaments([initialTourney]);
           }
         } catch (err) {
           console.error('Error fetching user cloud tournaments:', err);
@@ -230,8 +246,10 @@ export default function App() {
           isInitialLoadRef.current = false;
         }
       } else {
-        // User logged out: preserve current state in storage, don't blank it out
-        setUserTournaments([]);
+        // User logged out: preserve current state and all known tournaments in memory & storage
+        const allKnown = getAllKnownTournaments();
+        setUserTournaments(allKnown);
+        setDirectorStatus(null);
         isInitialLoadRef.current = false;
       }
     });
@@ -254,18 +272,26 @@ export default function App() {
         if (!canEdit || isParticipant || cloudTime > localTime) {
           setTournament(updated);
 
-          // Auto-advance round viewer if a new round was paired or current round changed
-          if (updated.currentRoundNumber && updated.currentRoundNumber > selectedRoundNumber) {
-            setSelectedRoundNumber(updated.currentRoundNumber);
-          } else if (updated.rounds.length > 0 && selectedRoundNumber > updated.rounds.length) {
-            setSelectedRoundNumber(updated.rounds.length);
+          // Only auto-advance round viewer if a brand new round was actually paired
+          const newRoundsCount = updated.rounds?.length || 0;
+          if (newRoundsCount > prevRoundsCountRef.current) {
+            setSelectedRoundNumber(newRoundsCount);
+            prevRoundsCountRef.current = newRoundsCount;
+          } else {
+            // Only clamp if selected round is out of bounds
+            setSelectedRoundNumber((curr) => {
+              if (newRoundsCount > 0 && curr > newRoundsCount) {
+                return newRoundsCount;
+              }
+              return curr;
+            });
           }
         }
       },
       (err) => console.warn('Live subscription notice:', err.message)
     );
     return () => unsub();
-  }, [tournament.id, canEdit, isParticipant, selectedRoundNumber, tournament.updatedAt]);
+  }, [tournament.id, canEdit, isParticipant, tournament.updatedAt]);
 
   // Save tournament to localStorage and Firestore (Only if user has edit permissions)
   useEffect(() => {
@@ -273,6 +299,7 @@ export default function App() {
       try {
         localStorage.setItem(`en_passant_tourney_${tournament.id}`, JSON.stringify(tournament));
         localStorage.setItem(STORAGE_KEY, JSON.stringify(tournament));
+        saveToAllKnownTournaments(tournament);
         if (currentUser) {
           localStorage.setItem(`en_passant_user_active_${currentUser.uid}`, tournament.id);
         }
@@ -367,8 +394,11 @@ export default function App() {
       if (tournament?.id) {
         localStorage.setItem(`en_passant_tourney_${tournament.id}`, JSON.stringify(tournament));
         localStorage.setItem(STORAGE_KEY, JSON.stringify(tournament));
+        saveToAllKnownTournaments(tournament);
       }
       await signOut(auth);
+      const all = getAllKnownTournaments();
+      setUserTournaments(all);
       setIsParticipant(false);
       localStorage.removeItem(PARTICIPANT_KEY);
       try {
@@ -599,7 +629,36 @@ export default function App() {
       <AuthPage
         onSignInWithGoogle={handleSignInWithGoogle}
         onEnterAsParticipant={handleEnterAsParticipant}
+        onSelectTournament={(t) => {
+          setTournament(t);
+          setSelectedRoundNumber(t.currentRoundNumber || (t.rounds.length > 0 ? t.rounds.length : 1));
+          setIsParticipant(true);
+          localStorage.setItem(PARTICIPANT_KEY, 'true');
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(t));
+          saveToAllKnownTournaments(t);
+        }}
         initialMode={isSignup ? 'signup' : isPart ? 'participant' : 'login'}
+      />
+    );
+  }
+
+  // ==========================================
+  // PENDING DIRECTOR APPROVAL RENDER
+  // Requires confirmation by Super Admin (shivgoyal0307@gmail.com)
+  // ==========================================
+  if (currentUser && directorStatus === 'pending' && !isParticipant && !isSuperAdmin(currentUser.email)) {
+    return (
+      <PendingApprovalView
+        userEmail={currentUser.email}
+        onCheckStatus={async () => {
+          const status = await getDirectorStatus(currentUser);
+          setDirectorStatus(status);
+          if (status === 'approved') {
+            showNotification('Your Director access has been approved! Welcome.');
+          }
+        }}
+        onContinueAsParticipant={handleEnterAsParticipant}
+        onSignOut={handleSignOut}
       />
     );
   }
@@ -608,7 +667,7 @@ export default function App() {
   // MAIN WORKSPACE
   // ==========================================
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col font-sans selection:bg-amber-500/20 selection:text-amber-200">
+    <div className="min-h-screen bg-black text-neutral-100 flex flex-col font-sans selection:bg-neutral-800 selection:text-white">
       {/* Top Header */}
       <Header
         tournament={tournament}
@@ -628,34 +687,35 @@ export default function App() {
           setIsParticipant(false);
           localStorage.removeItem(PARTICIPANT_KEY);
         }}
+        onOpenAdminPortal={() => setShowAdminPortalModal(true)}
       />
 
       {/* Notification Banner */}
       {bannerMessage && (
-        <div className="bg-amber-500/10 border-b border-amber-500/20 py-2 px-4 text-center text-xs font-semibold text-amber-300 transition-all">
+        <div className="bg-neutral-900 border-b border-neutral-800 py-2 px-4 text-center text-xs font-semibold text-white transition-all">
           {bannerMessage}
         </div>
       )}
 
       {/* Cloud Sync Status Notice for Netlify / Firebase setup */}
       {firestoreRulesNotice && (
-        <div className="bg-amber-500/10 border-b border-amber-500/20 py-2 px-4 flex items-center justify-between text-xs text-amber-300">
+        <div className="bg-neutral-950 border-b border-neutral-800 py-2.5 px-4 flex items-center justify-between text-xs text-neutral-300">
           <div className="flex items-center gap-2">
-            <span>⚠️</span>
+            <span>⚡</span>
             <span>
-              <strong>Cross-Device Live Sync:</strong> Tournaments are saved safely on your device. To show them live to participants on other phones or computers, publish your Firestore Security Rules in Firebase Console (<code className="bg-black/30 px-1 py-0.5 rounded font-mono text-[11px]">en-passant-2f5e1</code>).
+              <strong>Cross-Device Live Sync:</strong> Tournaments are saved safely on your device. To show them live to participants on other phones or computers, publish your Firestore Security Rules in Firebase Console (<code className="bg-neutral-900 px-1 py-0.5 rounded font-mono text-[11px] text-white">en-passant-2f5e1</code>).
             </span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => setShowRulesModal(true)}
-              className="px-2.5 py-1 bg-amber-400 text-neutral-950 font-semibold rounded text-[11px] hover:bg-amber-300 transition-colors"
+              className="px-2.5 py-1 bg-white text-black font-semibold rounded text-[11px] hover:bg-neutral-200 transition-colors"
             >
               View & Copy Rules
             </button>
             <button
               onClick={() => setFirestoreRulesNotice(false)}
-              className="text-neutral-400 hover:text-white text-xs px-1"
+              className="text-neutral-500 hover:text-white text-xs px-1"
             >
               ✕
             </button>
@@ -794,10 +854,10 @@ export default function App() {
       {/* Firebase Rules Configuration Modal */}
       {showRulesModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl">
+          <div className="bg-neutral-950 border border-neutral-800 rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
               <div className="flex items-center gap-2">
-                <span className="text-amber-400 font-bold text-lg">⚡</span>
+                <span className="text-white font-bold text-lg">⚡</span>
                 <h3 className="text-sm font-bold text-white">Enable Live Cross-Device Sync</h3>
               </div>
               <button
@@ -813,12 +873,12 @@ export default function App() {
             </p>
 
             <ol className="text-xs text-neutral-400 space-y-1 list-decimal list-inside">
-              <li>Open <a href="https://console.firebase.google.com/project/en-passant-2f5e1/firestore/rules" target="_blank" rel="noreferrer" className="text-amber-400 underline font-semibold">Firebase Console → Firestore Rules</a></li>
+              <li>Open <a href="https://console.firebase.google.com/project/en-passant-2f5e1/firestore/rules" target="_blank" rel="noreferrer" className="text-white underline font-semibold">Firebase Console → Firestore Rules</a></li>
               <li>Replace the content with the rules below and click <strong>Publish</strong></li>
             </ol>
 
             <div className="relative">
-              <pre className="bg-neutral-950 border border-neutral-800 rounded-xl p-3.5 text-[11px] font-mono text-emerald-400 overflow-x-auto leading-relaxed">
+              <pre className="bg-neutral-900 border border-neutral-800 rounded-xl p-3.5 text-[11px] font-mono text-white overflow-x-auto leading-relaxed">
 {`rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -856,19 +916,28 @@ service cloud.firestore {
                     alert('Rules not published yet or still propagating. Please publish in Firebase Console and try again in 5 seconds.');
                   }
                 }}
-                className="px-3.5 py-1.5 bg-amber-400 hover:bg-amber-300 text-neutral-950 text-xs font-semibold rounded-lg transition-colors"
+                className="px-3.5 py-1.5 bg-white hover:bg-neutral-200 text-black text-xs font-semibold rounded-lg transition-colors"
               >
                 Verify Connection
               </button>
               <button
                 onClick={() => setShowRulesModal(false)}
-                className="px-3.5 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-medium rounded-lg transition-colors"
+                className="px-3.5 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 text-xs font-medium rounded-lg transition-colors"
               >
                 Close
               </button>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Super Admin Portal Modal (shivgoyal0307@gmail.com) */}
+      {showAdminPortalModal && (
+        <AdminPortalModal
+          onClose={() => setShowAdminPortalModal(false)}
+          currentUserEmail={currentUser?.email}
+          onShowNotification={showNotification}
+        />
       )}
     </div>
   );

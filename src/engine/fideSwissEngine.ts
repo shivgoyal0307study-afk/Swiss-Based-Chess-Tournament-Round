@@ -58,12 +58,14 @@ export function calculatePlayerStats(
         continue;
       }
 
-      // Case 2: Half-point requested bye
+      // Case 2: Requested bye (Awards 1.0 point)
       if (game.result === 'BYE_HALF') {
         const pId = game.whitePlayerId || game.blackPlayerId;
         if (pId && statsMap.has(pId)) {
           const stats = statsMap.get(pId)!;
-          stats.score += 0.5;
+          stats.score += 1.0;
+          stats.hasHadBye = true;
+          stats.hasReceivedUnplayedPoint = true;
         }
         continue;
       }

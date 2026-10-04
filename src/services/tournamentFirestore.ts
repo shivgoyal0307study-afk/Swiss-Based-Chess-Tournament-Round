@@ -19,34 +19,81 @@ import { Tournament } from '../types/tournament';
 const GLOBAL_ALL_TOURNAMENTS_KEY = 'en_passant_all_known_tournaments';
 const USER_CACHE_PREFIX = 'en_passant_user_tourneys_';
 const PUBLIC_CACHE_KEY = 'en_passant_public_tourneys';
+const ACTIVE_STORAGE_KEY = 'en_passant_active_tournament';
+const V4_STORAGE_KEY = 'en_passant_chess_tournament_v4';
 
 /**
  * Gets all tournaments known to this browser across all users and sessions
  */
 export function getAllKnownTournaments(): Tournament[] {
   const map = new Map<string, Tournament>();
+
+  // 1. Check primary global array
   try {
     const raw = localStorage.getItem(GLOBAL_ALL_TOURNAMENTS_KEY);
     if (raw) {
       const parsed: Tournament[] = JSON.parse(raw);
-      parsed.forEach((t) => {
-        if (t && t.id) map.set(t.id, t);
-      });
+      if (Array.isArray(parsed)) {
+        parsed.forEach((t) => {
+          if (t && t.id) map.set(t.id, t);
+        });
+      }
     }
   } catch (e) {
     console.warn('Error reading global tournaments cache:', e);
   }
 
-  // Also sweep any individual tournament keys
+  // 2. Check active tournament in root storage & V4 key
+  try {
+    const activeRaw = localStorage.getItem(ACTIVE_STORAGE_KEY);
+    if (activeRaw) {
+      const activeT: Tournament = JSON.parse(activeRaw);
+      if (activeT && activeT.id && !map.has(activeT.id)) {
+        map.set(activeT.id, activeT);
+      }
+    }
+  } catch {}
+
+  try {
+    const v4Raw = localStorage.getItem(V4_STORAGE_KEY);
+    if (v4Raw) {
+      const v4T: Tournament = JSON.parse(v4Raw);
+      if (v4T && v4T.id && !map.has(v4T.id)) {
+        map.set(v4T.id, v4T);
+      }
+    }
+  } catch {}
+
+  // 3. Sweep all individual tournament and user cache keys in localStorage
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.startsWith('en_passant_tourney_')) {
+      if (!key) continue;
+
+      if (key.startsWith('en_passant_tourney_')) {
         const raw = localStorage.getItem(key);
         if (raw) {
           const t: Tournament = JSON.parse(raw);
-          if (t && t.id && !map.has(t.id)) {
-            map.set(t.id, t);
+          if (t && t.id) {
+            const existing = map.get(t.id);
+            if (!existing || (t.updatedAt || 0) >= (existing.updatedAt || 0)) {
+              map.set(t.id, t);
+            }
+          }
+        }
+      } else if (key.startsWith(USER_CACHE_PREFIX)) {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          const list: Tournament[] = JSON.parse(raw);
+          if (Array.isArray(list)) {
+            list.forEach((t) => {
+              if (t && t.id) {
+                const existing = map.get(t.id);
+                if (!existing || (t.updatedAt || 0) >= (existing.updatedAt || 0)) {
+                  map.set(t.id, t);
+                }
+              }
+            });
           }
         }
       }
@@ -67,6 +114,9 @@ export function saveToAllKnownTournaments(tournament: Tournament): void {
     const updated = [tournament, ...current.filter((t) => t.id !== tournament.id)];
     localStorage.setItem(GLOBAL_ALL_TOURNAMENTS_KEY, JSON.stringify(updated));
     localStorage.setItem(PUBLIC_CACHE_KEY, JSON.stringify(updated.filter((t) => t.isPublic !== false)));
+    localStorage.setItem(ACTIVE_STORAGE_KEY, JSON.stringify(tournament));
+    localStorage.setItem(V4_STORAGE_KEY, JSON.stringify(tournament));
+    localStorage.setItem(`en_passant_tourney_${tournament.id}`, JSON.stringify(tournament));
   } catch (e) {
     console.warn('Error writing to all known tournaments:', e);
   }
@@ -84,9 +134,11 @@ export function getCachedUserTournaments(userId: string, userEmail?: string | nu
     const rawById = localStorage.getItem(`${USER_CACHE_PREFIX}${userId}`);
     if (rawById) {
       const parsed: Tournament[] = JSON.parse(rawById);
-      parsed.forEach((t) => {
-        if (t && t.id) map.set(t.id, t);
-      });
+      if (Array.isArray(parsed)) {
+        parsed.forEach((t) => {
+          if (t && t.id) map.set(t.id, t);
+        });
+      }
     }
   } catch {}
 
@@ -96,9 +148,11 @@ export function getCachedUserTournaments(userId: string, userEmail?: string | nu
       const rawByEmail = localStorage.getItem(`${USER_CACHE_PREFIX}${cleanEmail}`);
       if (rawByEmail) {
         const parsed: Tournament[] = JSON.parse(rawByEmail);
-        parsed.forEach((t) => {
-          if (t && t.id) map.set(t.id, t);
-        });
+        if (Array.isArray(parsed)) {
+          parsed.forEach((t) => {
+            if (t && t.id) map.set(t.id, t);
+          });
+        }
       }
     } catch {}
   }
@@ -109,7 +163,9 @@ export function getCachedUserTournaments(userId: string, userEmail?: string | nu
     const isOwner =
       t.ownerId === userId ||
       (cleanEmail && t.ownerEmail && t.ownerEmail.toLowerCase() === cleanEmail) ||
-      (!t.ownerId && !t.ownerEmail); // Claim unclaimed local tournaments
+      !t.ownerId ||
+      t.ownerId === 'anonymous' ||
+      t.ownerId === 'local_user';
     const isCollaborator =
       cleanEmail && t.allowedEmails?.map((e) => e.toLowerCase()).includes(cleanEmail);
 
@@ -119,6 +175,11 @@ export function getCachedUserTournaments(userId: string, userEmail?: string | nu
       }
     }
   });
+
+  // Fallback: If no specific match, never leave user empty-handed if local tournaments exist!
+  if (map.size === 0 && all.length > 0) {
+    all.forEach((t) => map.set(t.id, t));
+  }
 
   const list = Array.from(map.values());
   list.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
@@ -401,7 +462,17 @@ export async function listUserTournaments(userId: string, userEmail?: string | n
     console.warn('Could not query user subcollection from cloud:', error);
   }
 
-  const list = Array.from(resultMap.values());
+  let list = Array.from(resultMap.values());
+
+  // If still empty, fall back to any tournaments saved in this browser
+  if (list.length === 0) {
+    const allKnown = getAllKnownTournaments();
+    if (allKnown.length > 0) {
+      allKnown.forEach((t) => resultMap.set(t.id, t));
+      list = Array.from(resultMap.values());
+    }
+  }
+
   list.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 
   // Sync merged result back to local cache

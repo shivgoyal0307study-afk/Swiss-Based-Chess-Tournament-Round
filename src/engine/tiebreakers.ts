@@ -63,7 +63,7 @@ export function calculateStandings(
       else if (game.result === '1-0F') pts = isWhite ? 1 : 0;
       else if (game.result === '0-1F') pts = isBlack ? 1 : 0;
       else if (game.result === 'BYE_PAB') pts = 1.0;
-      else if (game.result === 'BYE_HALF') pts = 0.5;
+      else if (game.result === 'BYE_HALF') pts = 1.0;
 
       const preGameScore = runningScore;
       runningScore += pts;
@@ -77,7 +77,7 @@ export function calculateStandings(
         details.push({
           round: round.roundNumber,
           opponentId: null,
-          opponentName: game.result === 'BYE_PAB' ? 'PAB (Full-Point Bye)' : 'Half-Point Bye',
+          opponentName: 'Bye (+1.0 Point)',
           opponentRating: player.rating,
           opponentFinalScore: virtualScore,
           color: '-',
@@ -374,14 +374,9 @@ function calculateCumulativeScores(
       const wId = game.whitePlayerId;
       const bId = game.blackPlayerId;
 
-      if (game.result === 'BYE_PAB') {
+      if (game.result === 'BYE_PAB' || game.result === 'BYE_HALF') {
         const pId = wId || bId;
         if (pId) currentRunningScore.set(pId, (currentRunningScore.get(pId) ?? 0) + 1.0);
-        continue;
-      }
-      if (game.result === 'BYE_HALF') {
-        const pId = wId || bId;
-        if (pId) currentRunningScore.set(pId, (currentRunningScore.get(pId) ?? 0) + 0.5);
         continue;
       }
 

@@ -343,11 +343,11 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
             <input
               type="number"
               required
-              min={100}
-              max={3500}
+              min="100"
+              max="3500"
               value={rating}
               onChange={(e) => setRating(e.target.value)}
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-1.5 text-xs text-neutral-100 font-mono focus:outline-none focus:border-amber-500"
+              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-1.5 text-xs text-neutral-100 font-mono focus:outline-none focus:border-white"
             />
           </div>
           <div>
@@ -355,7 +355,7 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
             <select
               value={title}
               onChange={(e) => setTitle(e.target.value as Player['title'])}
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-1.5 text-xs text-neutral-100 font-mono focus:outline-none focus:border-amber-500"
+              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-1.5 text-xs text-neutral-100 font-mono focus:outline-none focus:border-white"
             >
               <option value="">None</option>
               <option value="GM">GM</option>
@@ -370,7 +370,7 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
           <div className="flex items-end gap-2">
             <button
               type="submit"
-              className="flex-1 py-1.5 px-3 bg-amber-400 hover:bg-amber-300 text-neutral-950 font-semibold text-xs rounded-lg transition-colors"
+              className="flex-1 py-1.5 px-3 bg-white hover:bg-neutral-200 text-black font-semibold text-xs rounded-lg transition-colors"
             >
               Save Player
             </button>
@@ -387,12 +387,12 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
 
       {/* CSV & Excel File Import Modal */}
       {showImportModal && !isReadOnly && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-neutral-950 border border-neutral-800 rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl flex flex-col max-h-[90vh]">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-neutral-800 border border-neutral-700 flex items-center justify-center text-amber-400">
+                <div className="w-8 h-8 rounded-lg bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white">
                   <FileSpreadsheet className="w-4 h-4" />
                 </div>
                 <div>
@@ -420,7 +420,7 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
                 onClick={() => setImportTab('file')}
                 className={`pb-2 border-b-2 transition-all ${
                   importTab === 'file'
-                    ? 'border-amber-400 text-white'
+                    ? 'border-white text-white'
                     : 'border-transparent text-neutral-400 hover:text-neutral-200'
                 }`}
               >
@@ -430,7 +430,7 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
                 onClick={() => setImportTab('text')}
                 className={`pb-2 border-b-2 transition-all ${
                   importTab === 'text'
-                    ? 'border-amber-400 text-white'
+                    ? 'border-white text-white'
                     : 'border-transparent text-neutral-400 hover:text-neutral-200'
                 }`}
               >
@@ -440,8 +440,8 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
 
             {/* Error Message */}
             {importError && (
-              <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+              <div className="p-3 rounded-lg bg-neutral-900 border border-neutral-800 text-neutral-300 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-white" />
                 <span>{importError}</span>
               </div>
             )}
@@ -451,7 +451,7 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
               <div className="space-y-4">
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-neutral-700 hover:border-amber-400/80 bg-neutral-950/60 rounded-xl p-8 text-center cursor-pointer transition-all space-y-3"
+                  className="border-2 border-dashed border-neutral-700 hover:border-white bg-neutral-950 rounded-xl p-8 text-center cursor-pointer transition-all space-y-3"
                 >
                   <input
                     ref={fileInputRef}
@@ -460,7 +460,7 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
                     onChange={handleFileUpload}
                     className="hidden"
                   />
-                  <div className="w-10 h-10 rounded-xl bg-neutral-800 border border-neutral-700 mx-auto flex items-center justify-center text-amber-400">
+                  <div className="w-10 h-10 rounded-xl bg-neutral-900 border border-neutral-800 mx-auto flex items-center justify-center text-white">
                     <Upload className="w-5 h-5" />
                   </div>
                   <div>
@@ -478,7 +478,7 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
                   <button
                     type="button"
                     onClick={handleDownloadSampleCsv}
-                    className="text-amber-400 hover:text-amber-300 font-medium inline-flex items-center gap-1 underline"
+                    className="text-white hover:underline font-medium inline-flex items-center gap-1"
                   >
                     <Download className="w-3.5 h-3.5" />
                     <span>Download Blank Template</span>
@@ -500,12 +500,12 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
                   placeholder={`Player Name, Rating, Title, Federation`}
                   value={bulkText}
                   onChange={(e) => setBulkText(e.target.value)}
-                  className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-3 text-xs text-neutral-100 font-mono focus:outline-none focus:border-amber-400"
+                  className="w-full bg-neutral-900 border border-neutral-800 rounded-xl p-3 text-xs text-neutral-100 font-mono focus:outline-none focus:border-white"
                 />
                 <button
                   type="button"
                   onClick={handleParseText}
-                  className="px-3.5 py-1.5 text-xs font-medium text-neutral-200 bg-neutral-800 hover:bg-neutral-700 rounded-lg transition-colors"
+                  className="px-3.5 py-1.5 text-xs font-medium text-black bg-white hover:bg-neutral-200 rounded-lg transition-colors font-semibold"
                 >
                   Parse Text
                 </button>
@@ -516,7 +516,7 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
             {parsedPlayers.length > 0 && (
               <div className="space-y-2 pt-2 border-t border-neutral-800 flex-1 overflow-hidden flex flex-col">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-emerald-400 flex items-center gap-1.5">
+                  <span className="font-semibold text-white flex items-center gap-1.5">
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     <span>{parsedPlayers.length} players ready to import</span>
                   </span>
@@ -525,9 +525,9 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
                   </span>
                 </div>
 
-                <div className="max-h-44 overflow-y-auto border border-neutral-800 rounded-xl bg-neutral-950">
+                <div className="max-h-44 overflow-y-auto border border-neutral-800 rounded-xl bg-neutral-900">
                   <table className="w-full text-left text-xs font-mono">
-                    <thead className="bg-neutral-900 border-b border-neutral-800 text-neutral-400 sticky top-0">
+                    <thead className="bg-neutral-950 border-b border-neutral-800 text-neutral-400 sticky top-0">
                       <tr>
                         <th className="py-2 px-3 w-10">#</th>
                         <th className="py-2 px-3 font-sans">Name</th>
@@ -536,13 +536,13 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
                         <th className="py-2 px-3 text-center">Fed</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-neutral-900 text-neutral-300">
+                    <tbody className="divide-y divide-neutral-800 text-neutral-300">
                       {parsedPlayers.slice(0, 50).map((p, i) => (
-                        <tr key={i} className="hover:bg-neutral-900/40">
+                        <tr key={i} className="hover:bg-neutral-800/40">
                           <td className="py-1.5 px-3 text-neutral-500">{i + 1}</td>
                           <td className="py-1.5 px-3 font-sans font-medium text-neutral-100">{p.name}</td>
                           <td className="py-1.5 px-3 text-right">{p.rating}</td>
-                          <td className="py-1.5 px-3 text-center text-amber-400">{p.title || '—'}</td>
+                          <td className="py-1.5 px-3 text-center text-white font-semibold">{p.title || '—'}</td>
                           <td className="py-1.5 px-3 text-center text-neutral-400">{p.federation || '—'}</td>
                         </tr>
                       ))}
@@ -570,7 +570,7 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
                   <button
                     type="button"
                     onClick={() => handleConfirmImport('append')}
-                    className="px-4 py-1.5 text-xs font-semibold bg-amber-400 hover:bg-amber-300 text-neutral-950 rounded-lg transition-colors"
+                    className="px-4 py-1.5 text-xs font-semibold bg-white hover:bg-neutral-200 text-black rounded-lg transition-colors"
                   >
                     Add {parsedPlayers.length} Players to Roster
                   </button>
@@ -578,7 +578,7 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
                     <button
                       type="button"
                       onClick={() => handleConfirmImport('replace')}
-                      className="px-3.5 py-1.5 text-xs font-medium text-rose-300 hover:text-rose-200 bg-neutral-800 hover:bg-neutral-700 rounded-lg transition-colors"
+                      className="px-3.5 py-1.5 text-xs font-medium text-neutral-300 hover:text-white bg-neutral-900 hover:bg-neutral-850 border border-neutral-800 rounded-lg transition-colors"
                       title="Replace current roster completely with imported list"
                     >
                       Replace Roster
@@ -627,7 +627,7 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
 
                     <td className="py-2.5 px-3 text-center font-mono">
                       {player.title ? (
-                        <span className="text-[11px] font-semibold text-amber-400 bg-amber-500/10 px-1 rounded">
+                        <span className="text-[11px] font-semibold text-white bg-neutral-800 px-1 rounded">
                           {player.title}
                         </span>
                       ) : (
@@ -653,7 +653,7 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
                               onClick={() => toggleHalfPointBye(player.id, rNum)}
                               className={`w-5 h-5 rounded text-[10px] font-mono transition-colors ${
                                 hasRequested
-                                  ? 'bg-amber-400 text-neutral-950 font-bold'
+                                  ? 'bg-white text-black font-bold'
                                   : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
                               } ${isReadOnly || roundAlreadyStarted ? 'opacity-50 cursor-not-allowed' : ''}`}
                               title={
@@ -676,8 +676,8 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
                         <span
                           className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${
                             player.active
-                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                              : 'bg-neutral-800 text-neutral-400'
+                              ? 'bg-neutral-900 text-white border border-neutral-700'
+                              : 'bg-neutral-950 text-neutral-500 border border-neutral-800'
                           }`}
                         >
                           {player.active ? 'Active' : 'Withdrawn'}
@@ -687,8 +687,8 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
                           onClick={() => togglePlayerActive(player.id)}
                           className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
                             player.active
-                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                              : 'bg-neutral-800 text-neutral-400 border border-neutral-700'
+                              ? 'bg-neutral-900 text-white border border-neutral-700'
+                              : 'bg-neutral-950 text-neutral-500 border border-neutral-800'
                           }`}
                           title={player.active ? 'Click to set as Withdrawn' : 'Click to reactivate player'}
                         >
@@ -703,7 +703,7 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
                         {!isTournamentStarted && (
                           <button
                             onClick={() => deletePlayer(player.id)}
-                            className="p-1 text-neutral-500 hover:text-rose-400 transition-colors"
+                            className="p-1 text-neutral-500 hover:text-white transition-colors"
                             title="Remove player"
                           >
                             <Trash2 className="w-3.5 h-3.5" />

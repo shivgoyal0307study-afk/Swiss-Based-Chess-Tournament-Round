@@ -58,12 +58,12 @@ export const ShareAccessModal: React.FC<ShareAccessModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-neutral-900 border border-neutral-800 rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl flex flex-col">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+      <div className="bg-neutral-950 border border-neutral-800 rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+            <div className="w-8 h-8 rounded-lg bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white">
               <ShieldCheck className="w-4 h-4" />
             </div>
             <div>
@@ -73,21 +73,21 @@ export const ShareAccessModal: React.FC<ShareAccessModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="text-neutral-400 hover:text-neutral-200 text-sm p-1 rounded hover:bg-neutral-800"
+            className="text-neutral-400 hover:text-white text-sm p-1 rounded hover:bg-neutral-900 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Info Card */}
-        <div className="p-3 bg-neutral-950 border border-neutral-800 rounded-xl text-xs space-y-2">
+        <div className="p-3 bg-neutral-900/60 border border-neutral-800 rounded-xl text-xs space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-neutral-400">Tournament Creator:</span>
             <span className="font-mono text-neutral-200 font-medium">
               {tournament.ownerEmail || 'Primary Arbiter'}
             </span>
           </div>
-          <p className="text-[11px] text-neutral-500 leading-relaxed border-t border-neutral-850 pt-2">
+          <p className="text-[11px] text-neutral-500 leading-relaxed border-t border-neutral-800 pt-2">
             Only the creator and emails listed below have permission to record results, generate rounds, and modify players. All other users have read-only participant view.
           </p>
         </div>
@@ -106,23 +106,23 @@ export const ShareAccessModal: React.FC<ShareAccessModalProps> = ({
                   placeholder="arbiter@chessfederation.org"
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
-                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-xs text-neutral-100 placeholder-neutral-600 focus:outline-none focus:border-amber-400"
+                  className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-white transition-colors"
                 />
                 <Mail className="w-3.5 h-3.5 text-neutral-500 absolute right-3 top-1/2 -translate-y-1/2" />
               </div>
               <button
                 type="submit"
-                className="px-3 py-2 bg-amber-400 hover:bg-amber-300 text-neutral-950 font-semibold text-xs rounded-lg transition-colors flex items-center gap-1 shrink-0"
+                className="px-3.5 py-2 bg-white hover:bg-neutral-200 text-black font-semibold text-xs rounded-lg transition-colors flex items-center gap-1 shrink-0"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add</span>
               </button>
             </div>
-            {error && <p className="text-[11px] text-rose-400">{error}</p>}
+            {error && <p className="text-[11px] text-neutral-300">{error}</p>}
           </form>
         ) : (
-          <div className="p-3 bg-neutral-950/70 border border-neutral-800 rounded-xl text-xs text-neutral-400 flex items-center gap-2">
-            <Lock className="w-4 h-4 text-amber-400 shrink-0" />
+          <div className="p-3 bg-neutral-900/60 border border-neutral-800 rounded-xl text-xs text-neutral-400 flex items-center gap-2">
+            <Lock className="w-4 h-4 text-white shrink-0" />
             <span>Only the tournament creator can add or remove allowed arbiter emails.</span>
           </div>
         )}
@@ -136,7 +136,7 @@ export const ShareAccessModal: React.FC<ShareAccessModalProps> = ({
             <span className="text-[11px] font-mono">Full Edit Access</span>
           </div>
 
-          <div className="max-h-40 overflow-y-auto space-y-1.5 border border-neutral-800/80 rounded-xl p-2 bg-neutral-950/50">
+          <div className="max-h-40 overflow-y-auto space-y-1.5 border border-neutral-800 rounded-xl p-2 bg-neutral-950">
             {allowedList.length === 0 ? (
               <p className="text-center text-xs text-neutral-500 py-4">
                 No extra arbiters added yet. Only the creator has edit access.
@@ -148,14 +148,14 @@ export const ShareAccessModal: React.FC<ShareAccessModalProps> = ({
                   className="flex items-center justify-between p-2 rounded-lg bg-neutral-900 border border-neutral-800 text-xs"
                 >
                   <div className="flex items-center gap-2 truncate">
-                    <UserCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <UserCheck className="w-3.5 h-3.5 text-white shrink-0" />
                     <span className="font-mono text-neutral-200 truncate">{email}</span>
                   </div>
                   {isCreator && (
                     <button
                       type="button"
                       onClick={() => handleRemoveEmail(email)}
-                      className="p-1 text-neutral-500 hover:text-rose-400 transition-colors ml-2"
+                      className="p-1 text-neutral-500 hover:text-white transition-colors ml-2"
                       title="Revoke access"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -172,7 +172,7 @@ export const ShareAccessModal: React.FC<ShareAccessModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-1.5 text-xs font-semibold bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded-lg transition-colors"
+            className="px-4 py-1.5 text-xs font-semibold bg-neutral-900 hover:bg-neutral-800 text-white rounded-lg border border-neutral-800 transition-colors"
           >
             Done
           </button>

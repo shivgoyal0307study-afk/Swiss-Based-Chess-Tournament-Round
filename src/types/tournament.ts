@@ -118,3 +118,13 @@ export interface PairingAudit {
     upfloaters: string[];
   }[];
 }
+
+export interface DirectorRequest {
+  uid: string;
+  email: string;
+  displayName?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  requestedAt: number;
+  reviewedAt?: number;
+  reviewedBy?: string;
+}

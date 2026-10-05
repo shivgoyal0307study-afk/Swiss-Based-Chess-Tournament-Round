@@ -13,21 +13,10 @@ service cloud.firestore {
       // Anyone (participants, spectators, arbiters) can read
       allow read: if true;
 
-      // Authenticated arbiter can create
-      allow create: if isSignedIn();
+      // Authenticated arbiter can create and update
+      allow create, update: if isSignedIn();
 
-      // Only creator, allowed assistant arbiter, claimer of anonymous tournament, or Super Admin can update
-      allow update: if isSignedIn() && (
-        request.auth.token.email == 'shivgoyal0307@gmail.com' ||
-        resource.data.ownerId == request.auth.uid ||
-        resource.data.ownerId == 'anonymous' ||
-        resource.data.ownerId == 'local_user' ||
-        !('ownerId' in resource.data) ||
-        (('ownerEmail' in resource.data) && request.auth.token.email != null && resource.data.ownerEmail == request.auth.token.email) ||
-        (('allowedEmails' in resource.data) && resource.data.allowedEmails is list && request.auth.token.email != null && request.auth.token.email in resource.data.allowedEmails)
-      );
-
-      // Only creator or Super Admin can delete
+      // Only creator, designated arbiter, or Super Admin can delete
       allow delete: if isSignedIn() && (
         request.auth.token.email == 'shivgoyal0307@gmail.com' ||
         resource.data.ownerId == request.auth.uid ||

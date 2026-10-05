@@ -35,13 +35,25 @@ export const CrossTableView: React.FC<CrossTableViewProps> = ({ tournament, stan
     for (const game of round.games) {
       if (!game.result) continue;
 
-      if (game.result === 'BYE_PAB' || game.result === 'BYE_HALF') {
+      if (game.result === 'BYE_PAB') {
         const pId = game.whitePlayerId || game.blackPlayerId;
         if (pId && playerRoundData.has(pId)) {
           playerRoundData.get(pId)!.set(round.roundNumber, {
             text: 'BYE 1',
             bgClass: 'bg-neutral-900 border border-neutral-700 text-white font-semibold',
-            title: `Round ${round.roundNumber}: Bye (+1.0 point)`,
+            title: `Round ${round.roundNumber}: Pairing Bye (+1.0 point)`,
+          });
+        }
+        continue;
+      }
+
+      if (game.result === 'BYE_HALF') {
+        const pId = game.whitePlayerId || game.blackPlayerId;
+        if (pId && playerRoundData.has(pId)) {
+          playerRoundData.get(pId)!.set(round.roundNumber, {
+            text: 'BYE ½',
+            bgClass: 'bg-neutral-900 border border-neutral-800 text-neutral-300 font-medium',
+            title: `Round ${round.roundNumber}: Half-point Bye (+0.5 point)`,
           });
         }
         continue;

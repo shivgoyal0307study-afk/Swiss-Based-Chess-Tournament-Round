@@ -18,8 +18,13 @@ import {
   FileDown,
   X,
   History,
+  Share2,
+  Check,
+  BookOpen,
+  Info,
 } from 'lucide-react';
 import { exportPairingsPdf } from '../utils/pdfExport';
+import { FideRulesModal } from './FideRulesModal';
 
 interface PairingsViewProps {
   tournament: Tournament;
@@ -45,6 +50,17 @@ export const PairingsView: React.FC<PairingsViewProps> = ({
   standings = [],
 }) => {
   const [playerSearchQuery, setPlayerSearchQuery] = useState('');
+  const [showFideRules, setShowFideRules] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const handleCopyLiveLink = () => {
+    const url = typeof window !== 'undefined' ? `${window.location.origin}/?t=${tournament.id}` : '';
+    if (url && navigator.clipboard) {
+      navigator.clipboard.writeText(url);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2500);
+    }
+  };
 
   // If tournament has 0 rounds
   if (tournament.rounds.length === 0) {
@@ -200,8 +216,43 @@ export const PairingsView: React.FC<PairingsViewProps> = ({
           </button>
         </div>
 
-        {/* Global Arbiter & Export Actions */}
-        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+        {/* Global Arbiter, Live & Export Actions */}
+        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center flex-wrap">
+          {/* Live Sync Status */}
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono bg-neutral-900 border border-neutral-800 text-neutral-300">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span>Live Real-Time Sync</span>
+          </span>
+
+          {/* Share Live Link */}
+          <button
+            onClick={handleCopyLiveLink}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-neutral-300 hover:text-white bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded-lg transition-colors"
+            title="Copy real-time live link to share with participants and spectators"
+          >
+            {copiedLink ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-emerald-400 font-medium">Link Copied!</span>
+              </>
+            ) : (
+              <>
+                <Share2 className="w-3.5 h-3.5 text-white" />
+                <span>Share Live</span>
+              </>
+            )}
+          </button>
+
+          {/* Official FIDE Rules Modal Button */}
+          <button
+            onClick={() => setShowFideRules(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-neutral-300 hover:text-white bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded-lg transition-colors"
+            title="View 9 official FIDE Swiss rules and invariants"
+          >
+            <BookOpen className="w-3.5 h-3.5 text-white" />
+            <span className="hidden sm:inline">FIDE Rules</span>
+          </button>
+
           {/* PDF Download Button */}
           <button
             onClick={handleDownloadPdf}
@@ -209,7 +260,7 @@ export const PairingsView: React.FC<PairingsViewProps> = ({
             title="Download PDF of Round Pairings & Results"
           >
             <FileDown className="w-3.5 h-3.5 text-white" />
-            <span>Download PDF</span>
+            <span>PDF</span>
           </button>
 
           {!isReadOnly && isLatestRound && roundNum > 1 && (
@@ -453,11 +504,27 @@ export const PairingsView: React.FC<PairingsViewProps> = ({
                     </span>
                   </div>
                 </div>
+
+                {/* FIDE Rule 9 Transparent Pairing Rationale */}
+                {game.pairingExplanation && (
+                  <div className="mt-2 pt-2 border-t border-neutral-900 flex items-center justify-between text-[11px] text-neutral-400 font-mono">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white/70 shrink-0" />
+                      <span className="truncate">{game.pairingExplanation}</span>
+                    </div>
+                    <span className="text-[10px] text-neutral-500 uppercase shrink-0 font-medium ml-2">
+                      FIDE Rule 9
+                    </span>
+                  </div>
+                )}
               </div>
             );
           })
         )}
       </div>
+
+      {/* Official FIDE Rules Reference Modal */}
+      <FideRulesModal isOpen={showFideRules} onClose={() => setShowFideRules(false)} />
     </div>
   );
 };

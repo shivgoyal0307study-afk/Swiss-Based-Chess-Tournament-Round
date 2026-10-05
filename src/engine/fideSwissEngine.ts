@@ -58,14 +58,14 @@ export function calculatePlayerStats(
         continue;
       }
 
-      // Case 2: Requested bye (Awards 1.0 point)
+      // Case 2: Requested half-point bye (Awards 0.5 point)
       if (game.result === 'BYE_HALF') {
         const pId = game.whitePlayerId || game.blackPlayerId;
         if (pId && statsMap.has(pId)) {
           const stats = statsMap.get(pId)!;
-          stats.score += 1.0;
+          stats.score += 0.5;
           stats.hasHadBye = true;
-          stats.hasReceivedUnplayedPoint = true;
+          // Note: Half-point bye does NOT disqualify player from future PAB under FIDE Rule 4
         }
         continue;
       }
@@ -220,65 +220,74 @@ export function getColorPreference(stats: PlayerStats): ColorPreference {
 }
 
 /**
- * Checks if two players can legally be paired under Absolute Criteria:
- * - C1: Not played before
- * - Can assign a valid color orientation that violates neither C3 nor C4
+ * Checks if two players can legally be paired under FIDE Swiss Rules:
+ * Rule 2 (Strict Absolute): Two participants shall not play against each other more than once.
+ * Rule 5 (Priority): Participants are paired to others with the same score.
+ * Rule 6 & 7: Color differences and consecutive colors have exceptions (Color Break)
+ *             when necessary to pair players with the same score.
  */
 export function canBePaired(
   playerAId: string,
   playerBId: string,
   statsMap: Map<string, PlayerStats>
-): { valid: boolean; reason?: string; allowedOrientations: ('AB' | 'BA')[] } {
+): { valid: boolean; reason?: string; allowedOrientations: ('AB' | 'BA')[]; hasColorBreak: boolean } {
   if (playerAId === playerBId) {
-    return { valid: false, reason: 'Cannot play oneself', allowedOrientations: [] };
+    return { valid: false, reason: 'Cannot play oneself', allowedOrientations: [], hasColorBreak: false };
   }
 
   const statsA = statsMap.get(playerAId);
   const statsB = statsMap.get(playerBId);
 
   if (!statsA || !statsB) {
-    return { valid: false, reason: 'Player stats not found', allowedOrientations: [] };
+    return { valid: false, reason: 'Player stats not found', allowedOrientations: [], hasColorBreak: false };
   }
 
-  // C1: Cannot have played each other already
+  // FIDE Rule 2: Strict Absolute Rule — Cannot play the same opponent more than once
   if (statsA.opponentsPlayed.includes(playerBId)) {
-    return { valid: false, reason: 'C1: Already played each other', allowedOrientations: [] };
+    return { valid: false, reason: 'FIDE Rule 2: Already played each other', allowedOrientations: [], hasColorBreak: false };
   }
 
   const prefA = getColorPreference(statsA);
   const prefB = getColorPreference(statsB);
 
-  const allowed: ('AB' | 'BA')[] = []; // 'AB' means A=White, B=Black; 'BA' means B=White, A=Black
+  const allowed: ('AB' | 'BA')[] = [];
 
-  // Test AB: A is White, B is Black
+  // Test AB: A is White, B is Black without absolute color violation
   const aCanBeWhite = !(prefA.isAbsolute && prefA.preferred === 'B');
   const bCanBeBlack = !(prefB.isAbsolute && prefB.preferred === 'W');
   if (aCanBeWhite && bCanBeBlack) {
     allowed.push('AB');
   }
 
-  // Test BA: B is White, A is Black
+  // Test BA: B is White, A is Black without absolute color violation
   const bCanBeWhite = !(prefB.isAbsolute && prefB.preferred === 'B');
   const aCanBeBlack = !(prefA.isAbsolute && prefA.preferred === 'W');
   if (bCanBeWhite && aCanBeBlack) {
     allowed.push('BA');
   }
 
+  // If no orientation satisfies strict color without exception:
+  // FIDE Swiss Rule 5, 6, 7: Points have higher priority than color!
+  // In real tournaments, a color break happens so players with the same score (e.g. 2 wins) can play.
   if (allowed.length === 0) {
     return {
-      valid: false,
-      reason: 'C3/C4: Incompatible absolute color constraints',
-      allowedOrientations: [],
+      valid: true,
+      hasColorBreak: true,
+      reason: 'FIDE Color Break: Points prioritized over color constraint',
+      allowedOrientations: ['AB', 'BA'],
     };
   }
 
-  return { valid: true, allowedOrientations: allowed };
+  return { valid: true, allowedOrientations: allowed, hasColorBreak: false };
 }
 
 /**
  * Decides the best color orientation for a paired couple (playerA, playerB)
- * based on FIDE preference hierarchies.
- * Returns { whiteId, blackId, reason }.
+ * based on FIDE Swiss Rule 8:
+ * "In general, a participant is given the colour with which they played fewer rounds.
+ * If colours are already balanced, then, in general, the participant is given the colour
+ * that alternates from the last one with which they played."
+ * In case of a color break, distributes the break equitably to minimize imbalance.
  */
 export function resolveColorOrientation(
   playerAId: string,
@@ -289,7 +298,6 @@ export function resolveColorOrientation(
 ): { whiteId: string; blackId: string; reason: string } {
   const check = canBePaired(playerAId, playerBId, statsMap);
   if (!check.valid || check.allowedOrientations.length === 0) {
-    // Fallback if forced
     return { whiteId: playerAId, blackId: playerBId, reason: 'Forced orientation' };
   }
 
@@ -298,19 +306,18 @@ export function resolveColorOrientation(
       return {
         whiteId: playerAId,
         blackId: playerBId,
-        reason: 'Single orientation compatible with absolute criteria',
+        reason: 'Compatible color orientation',
       };
     } else {
       return {
         whiteId: playerBId,
         blackId: playerAId,
-        reason: 'Single orientation compatible with absolute criteria',
+        reason: 'Compatible color orientation',
       };
     }
   }
 
-  // Both AB and BA are legally permitted under absolute rules.
-  // Evaluate quality criteria for color:
+  // Both AB and BA are viable (or color break applies):
   const statsA = statsMap.get(playerAId)!;
   const statsB = statsMap.get(playerBId)!;
   const prefA = getColorPreference(statsA);
@@ -322,23 +329,36 @@ export function resolveColorOrientation(
     const wPref = getColorPreference(whiteStats);
     const bPref = getColorPreference(blackStats);
 
-    // Prefer giving preferred color
-    if (wPref.preferred === 'W') score += wPref.isAbsolute ? 100 : 10;
-    if (wPref.preferred === 'B') score -= wPref.isAbsolute ? 100 : 10;
+    // Give preferred color
+    if (wPref.preferred === 'W') score += wPref.isAbsolute ? 60 : 20;
+    if (wPref.preferred === 'B') score -= wPref.isAbsolute ? 60 : 20;
 
-    if (bPref.preferred === 'B') score += bPref.isAbsolute ? 100 : 10;
-    if (bPref.preferred === 'W') score -= bPref.isAbsolute ? 100 : 10;
+    if (bPref.preferred === 'B') score += bPref.isAbsolute ? 60 : 20;
+    if (bPref.preferred === 'W') score -= bPref.isAbsolute ? 60 : 20;
 
-    // Favor reducing color difference magnitude
-    const nextWDiff = Math.abs(whiteStats.colorDifference + 1);
-    const prevWDiff = Math.abs(whiteStats.colorDifference);
-    if (nextWDiff < prevWDiff) score += 5;
-    else if (nextWDiff > prevWDiff) score -= 5;
+    // FIDE Rule 8: Color with which they played fewer rounds
+    // White reduces imbalance if whiteStats.colorDifference < 0
+    if (whiteStats.colorDifference < 0) score += 25 * Math.abs(whiteStats.colorDifference);
+    if (whiteStats.colorDifference > 0) score -= 25 * Math.abs(whiteStats.colorDifference);
 
-    const nextBDiff = Math.abs(blackStats.colorDifference - 1);
-    const prevBDiff = Math.abs(blackStats.colorDifference);
-    if (nextBDiff < prevBDiff) score += 5;
-    else if (nextBDiff > prevBDiff) score -= 5;
+    // Black reduces imbalance if blackStats.colorDifference > 0
+    if (blackStats.colorDifference > 0) score += 25 * Math.abs(blackStats.colorDifference);
+    if (blackStats.colorDifference < 0) score -= 25 * Math.abs(blackStats.colorDifference);
+
+    // Consecutive same color minimization (Rule 7)
+    if (whiteStats.consecutiveSameColor.color === 'B') score += 15 * whiteStats.consecutiveSameColor.count;
+    if (whiteStats.consecutiveSameColor.color === 'W') score -= 30 * whiteStats.consecutiveSameColor.count;
+
+    if (blackStats.consecutiveSameColor.color === 'W') score += 15 * blackStats.consecutiveSameColor.count;
+    if (blackStats.consecutiveSameColor.color === 'B') score -= 30 * blackStats.consecutiveSameColor.count;
+
+    // Severe penalty if orientation produces 3 consecutive same colors (violates Rule 7)
+    if (whiteStats.consecutiveSameColor.color === 'W' && whiteStats.consecutiveSameColor.count >= 2) {
+      score -= 250;
+    }
+    if (blackStats.consecutiveSameColor.color === 'B' && blackStats.consecutiveSameColor.count >= 2) {
+      score -= 250;
+    }
 
     return score;
   };
@@ -350,27 +370,51 @@ export function resolveColorOrientation(
     return {
       whiteId: playerAId,
       blackId: playerBId,
-      reason: 'Satisfies color preferences & balances color differences',
+      reason: 'FIDE Rule 8: Color balance & alternation preference',
     };
   } else if (scoreBA > scoreAB) {
     return {
       whiteId: playerBId,
       blackId: playerAId,
-      reason: 'Satisfies color preferences & balances color differences',
+      reason: 'FIDE Rule 8: Color balance & alternation preference',
     };
   }
 
-  // Tiebreaker: Higher ranked player gets preference / alternation
-  // Or alternate based on round number and initial lot
-  if ((statsA.score > statsB.score) || (statsA.score === statsB.score)) {
-    if (prefA.preferred === 'W') {
-      return { whiteId: playerAId, blackId: playerBId, reason: 'Higher rated player preference' };
-    } else if (prefA.preferred === 'B') {
-      return { whiteId: playerBId, blackId: playerAId, reason: 'Higher rated player preference' };
+  // Tiebreaker when scores and orientations are equal:
+  // If one player has a higher score, they get their color preference
+  if (statsA.score > statsB.score) {
+    if (prefA.preferred === 'B') {
+      return { whiteId: playerBId, blackId: playerAId, reason: 'FIDE Rule 8: Higher score receives preferred Black' };
     }
+    return { whiteId: playerAId, blackId: playerBId, reason: 'FIDE Rule 8: Higher score receives preferred White' };
+  } else if (statsB.score > statsA.score) {
+    if (prefB.preferred === 'B') {
+      return { whiteId: playerAId, blackId: playerBId, reason: 'FIDE Rule 8: Higher score receives preferred Black' };
+    }
+    return { whiteId: playerBId, blackId: playerAId, reason: 'FIDE Rule 8: Higher score receives preferred White' };
   }
 
-  return { whiteId: playerAId, blackId: playerBId, reason: 'Standard Dutch lot color allocation' };
+  // Equal scores & equal evaluations (e.g. Color Break where both have identical color history):
+  // FIDE Rule 8 & Dutch C.04.3.e: Higher-seeded player (playerA) gets priority for their preferred color!
+  if (prefA.preferred === 'B') {
+    return {
+      whiteId: playerBId,
+      blackId: playerAId,
+      reason: 'FIDE Rule 8 (Color Break): Top seed allocated preferred Black',
+    };
+  } else if (prefA.preferred === 'W') {
+    return {
+      whiteId: playerAId,
+      blackId: playerBId,
+      reason: 'FIDE Rule 8 (Color Break): Top seed allocated preferred White',
+    };
+  }
+
+  return {
+    whiteId: round1TopSeedColor === 'W' ? playerAId : playerBId,
+    blackId: round1TopSeedColor === 'W' ? playerBId : playerAId,
+    reason: 'Standard FIDE lot allocation',
+  };
 }
 
 /**
@@ -491,6 +535,7 @@ export function generateRound1Pairings(
       whitePlayerId: whiteId,
       blackPlayerId: blackId,
       result: null,
+      pairingExplanation: `FIDE Dutch Round 1: Top half (Seed #${i + 1} ${playerA.name}) vs Bottom half (Seed #${half + i + 1} ${playerB.name}). Color alternated.`,
     });
     boardNum++;
   }
@@ -504,6 +549,7 @@ export function generateRound1Pairings(
       whitePlayerId: hp.id,
       blackPlayerId: null,
       result: 'BYE_HALF',
+      pairingExplanation: `Requested Half-Point Bye: Player awarded 0.5 unplayed points in advance.`,
     });
   }
 
@@ -516,6 +562,7 @@ export function generateRound1Pairings(
       whitePlayerId: byePlayer.id,
       blackPlayerId: null,
       result: 'BYE_PAB',
+      pairingExplanation: `FIDE Rule 3 & 4 (Pairing-Allocated Bye): Lowest rated participant receives 1.0 point bye for odd field.`,
     });
   }
 
@@ -583,13 +630,18 @@ export function generateSubsequentRoundPairings(
 
   // Resolve color assignments for each pair
   for (const [p1, p2] of pairs) {
-    const { whiteId, blackId } = resolveColorOrientation(
+    const { whiteId, blackId, reason } = resolveColorOrientation(
       p1.id,
       p2.id,
       statsMap,
       roundNumber,
       round1TopSeedColor
     );
+
+    const s1 = statsMap.get(p1.id)?.score ?? 0;
+    const s2 = statsMap.get(p2.id)?.score ?? 0;
+    const scoreGroupText = s1 === s2 ? `Same score group (${s1} pts)` : `Score group float (${Math.max(s1, s2)} vs ${Math.min(s1, s2)} pts)`;
+    const explanation = `FIDE Dutch: ${scoreGroupText}. ${reason}.`;
 
     games.push({
       id: `r${roundNumber}-b${boardNum}`,
@@ -598,6 +650,7 @@ export function generateSubsequentRoundPairings(
       whitePlayerId: whiteId,
       blackPlayerId: blackId,
       result: null,
+      pairingExplanation: explanation,
     });
     boardNum++;
   }
@@ -611,6 +664,7 @@ export function generateSubsequentRoundPairings(
       whitePlayerId: hp.id,
       blackPlayerId: null,
       result: 'BYE_HALF',
+      pairingExplanation: 'Requested Half-Point Bye: Player awarded 0.5 unplayed points in advance.',
     });
   }
 
@@ -623,6 +677,7 @@ export function generateSubsequentRoundPairings(
       whitePlayerId: byePlayer.id,
       blackPlayerId: null,
       result: 'BYE_PAB',
+      pairingExplanation: 'FIDE Rule 3 & 4 (Pairing Bye): Lowest rated participant in lowest score group awarded 1.0 point bye.',
     });
   }
 
@@ -642,25 +697,31 @@ function solveDutchPairings(
   if (players.length % 2 !== 0) return null;
 
   // Pre-calculate pair compatibility and cost
-  // Cost: heavily penalizes score differences, downfloats, and color imbalance
+  // Cost: heavily penalizes score differences (points > color), downfloats, and color imbalance
   const getPairWeight = (pA: Player, pB: Player): number => {
     const statsA = statsMap.get(pA.id)!;
     const statsB = statsMap.get(pB.id)!;
     const scoreDiff = Math.abs(statsA.score - statsB.score);
 
-    // Primary goal: minimize score difference
-    let weight = scoreDiff * 10000;
+    // FIDE Rule 5: Points are strictly higher priority than color!
+    // A score difference of 0.5 is penalized by 50,000, ensuring same-score pairings are preferred.
+    let weight = scoreDiff * 100000;
 
-    // Secondary: Rating difference (in Dutch system, pair top with bottom of group)
+    // Secondary: Dutch system rating spread (top half with bottom half)
     const ratingDiff = Math.abs(pA.rating - pB.rating);
-    weight += ratingDiff * 0.1;
+    weight += ratingDiff * 0.05;
 
-    // Tertiary: Color compatibility
-    const prefA = getColorPreference(statsA);
-    const prefB = getColorPreference(statsB);
-    if (prefA.preferred && prefB.preferred && prefA.preferred === prefB.preferred) {
-      // Both want same color
-      weight += 100;
+    // Tertiary: Color compatibility & Color breaks
+    const check = canBePaired(pA.id, pB.id, statsMap);
+    if (check.hasColorBreak) {
+      // Color break happens so players with same points can play (500 << 50,000)
+      weight += 500;
+    } else {
+      const prefA = getColorPreference(statsA);
+      const prefB = getColorPreference(statsB);
+      if (prefA.preferred && prefB.preferred && prefA.preferred === prefB.preferred) {
+        weight += 40;
+      }
     }
 
     return weight;

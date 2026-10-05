@@ -21,6 +21,7 @@ import {
   Search,
   Eye,
   LogIn,
+  BookOpen,
 } from 'lucide-react';
 import { Tournament } from '../types/tournament';
 import type { User } from 'firebase/auth';
@@ -42,6 +43,7 @@ interface HeaderProps {
   onOpenShareAccess: () => void;
   onSwitchToDirectorLogin: () => void;
   onOpenAdminPortal?: () => void;
+  onOpenFideRules?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -60,6 +62,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenShareAccess,
   onSwitchToDirectorLogin,
   onOpenAdminPortal,
+  onOpenFideRules,
 }) => {
   const allowedCount = tournament.allowedEmails?.length || 0;
   const userInitial = (currentUser?.displayName?.[0] || currentUser?.email?.[0] || 'A').toUpperCase();
@@ -169,6 +172,18 @@ export const Header: React.FC<HeaderProps> = ({
               <Search className="w-3.5 h-3.5 text-white" />
               <span className="hidden sm:inline">Search Events</span>
             </button>
+
+            {/* Official FIDE Rules Modal Button */}
+            {onOpenFideRules && (
+              <button
+                onClick={onOpenFideRules}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-neutral-300 hover:text-white bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded-lg transition-colors"
+                title="View 9 Official FIDE Swiss System Rules"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-white" />
+                <span className="hidden lg:inline">FIDE Rules</span>
+              </button>
+            )}
 
             {/* Read-Only Participant Indicator */}
             {isParticipant ? (

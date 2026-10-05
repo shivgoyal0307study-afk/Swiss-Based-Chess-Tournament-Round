@@ -183,6 +183,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   };
 
   const handleOpenTournament = (t: Tournament) => {
+    try {
+      if (typeof window !== 'undefined') {
+        window.history.pushState(null, '', `/?t=${t.id}`);
+      }
+    } catch {}
     if (onSelectTournament) {
       onSelectTournament(t);
     } else {

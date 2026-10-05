@@ -10,13 +10,45 @@ import { ShieldCheck, AlertTriangle, CheckCircle2, XCircle, Info } from 'lucide-
 
 interface RulesAuditModalProps {
   tournament: Tournament;
+  onClose?: () => void;
 }
 
-export const RulesAuditModal: React.FC<RulesAuditModalProps> = ({ tournament }) => {
+export const RulesAuditModal: React.FC<RulesAuditModalProps> = ({ tournament, onClose }) => {
   const report = validateTournamentRules(tournament.players, tournament.rounds);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
+      <div className="bg-neutral-950 border border-neutral-800 rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden my-auto">
+        {/* Header */}
+        <div className="p-5 border-b border-neutral-800 flex items-center justify-between bg-neutral-900/50 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-neutral-900 border border-neutral-700 flex items-center justify-center font-bold text-white text-sm">
+              ⚖️
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
+                <span>FIDE Arbiter Compliance Audit</span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-neutral-800 text-neutral-300 border border-neutral-700">
+                  C.04.3
+                </span>
+              </h2>
+              <p className="text-xs text-neutral-400 mt-0.5">
+                Automated verification of Absolute Criteria C1–C4
+              </p>
+            </div>
+          </div>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors"
+            >
+              <XCircle className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Modal Scrollable Content */}
+        <div className="p-6 overflow-y-auto space-y-6">
       {/* Top Banner */}
       <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6 shadow-sm">
         <div className="flex items-start gap-4">
@@ -192,16 +224,33 @@ export const RulesAuditModal: React.FC<RulesAuditModalProps> = ({ tournament }) 
         </div>
       )}
 
-      {/* Official FIDE Dutch Rules Reference Box */}
-      <div className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-5 text-xs text-neutral-400 space-y-2">
-        <h4 className="font-semibold text-neutral-300">FIDE Swiss Rules Reference (Handbook Section C.04.3)</h4>
-        <p>
-          The Dutch System is the primary FIDE Swiss pairing system. It divides players into score groups, sorts by
-          rating, and matches the top half of each group with the bottom half while strictly maintaining absolute
-          criteria C1 through C4. When an odd player must move between brackets, the downfloater is chosen to maximize
-          legal pairing count and minimize score gap divergence.
-        </p>
+        {/* Official FIDE Dutch Rules Reference Box */}
+        <div className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-5 text-xs text-neutral-400 space-y-2">
+          <h4 className="font-semibold text-neutral-300">FIDE Swiss Rules Reference (Handbook Section C.04.3)</h4>
+          <p>
+            The Dutch System is the primary FIDE Swiss pairing system. It divides players into score groups, sorts by
+            rating, and matches the top half of each group with the bottom half while strictly maintaining absolute
+            criteria C1 through C4. When an odd player must move between brackets, the downfloater is chosen to maximize
+            legal pairing count and minimize score gap divergence.
+          </p>
+        </div>
+      </div>
+
+      {/* Modal Footer */}
+      <div className="p-4 border-t border-neutral-800 flex items-center justify-between bg-neutral-900/50 shrink-0">
+        <span className="text-[11px] text-neutral-500 font-mono">
+          FIDE Handbook C.04.3 Dutch System Invariants
+        </span>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-xl bg-white hover:bg-neutral-200 text-black text-xs font-semibold transition-colors"
+          >
+            Close Audit
+          </button>
+        )}
       </div>
     </div>
+  </div>
   );
 };

@@ -24,6 +24,7 @@ export interface Game {
   blackPlayerId: string | null; // null for PAB
   result: GameResult | null;
   manualOverride?: boolean;
+  pairingExplanation?: string; // FIDE Rule 9: Transparent explanation of pairing & color allocation
 }
 
 export interface PlayerStats {

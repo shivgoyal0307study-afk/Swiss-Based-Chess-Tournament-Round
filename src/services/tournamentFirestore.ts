@@ -233,7 +233,7 @@ export function sanitizeTournament(
     round1TopSeedColor: tournament.round1TopSeedColor || 'W',
     status: tournament.status || 'setup',
     createdAt: tournament.createdAt || Date.now(),
-    updatedAt: Date.now(),
+    updatedAt: tournament.updatedAt || Date.now(),
     players: (tournament.players || []).map((p) => ({
       id: p.id,
       name: p.name,
@@ -256,6 +256,7 @@ export function sanitizeTournament(
         blackPlayerId: g.blackPlayerId ?? null,
         result: g.result ?? null,
         manualOverride: Boolean(g.manualOverride),
+        pairingExplanation: g.pairingExplanation || '',
       })),
     })),
   };
@@ -514,7 +515,7 @@ export async function deleteTournamentFromFirestore(
  */
 export function subscribeToTournament(
   tournamentId: string,
-  onUpdate: (tournament: Tournament) => void,
+  onUpdate: (tournament: Tournament, hasPendingWrites?: boolean) => void,
   onError?: (err: Error) => void
 ): () => void {
   const docRef = doc(db, 'tournaments', tournamentId);
@@ -522,11 +523,12 @@ export function subscribeToTournament(
   try {
     return onSnapshot(
       docRef,
+      { includeMetadataChanges: true },
       (snap) => {
         if (snap.exists()) {
           const data = snap.data() as Tournament;
           saveToAllKnownTournaments(data);
-          onUpdate(data);
+          onUpdate(data, snap.metadata.hasPendingWrites);
         }
       },
       (error) => {

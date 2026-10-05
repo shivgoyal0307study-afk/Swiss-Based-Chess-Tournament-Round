@@ -26,10 +26,13 @@ import {
   Eye,
   Crown,
   Share2,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { Tournament } from '../types/tournament';
 import type { User } from 'firebase/auth';
 import { isSuperAdmin } from '../services/adminService';
+import { useTheme } from '../context/ThemeContext';
 
 export interface SidebarProps {
   tournament: Tournament;
@@ -110,6 +113,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const userIsAdmin = currentUser?.email ? isSuperAdmin(currentUser.email) : false;
   const allowedCount = tournament.allowedEmails?.length || 0;
+  const { theme, toggleTheme } = useTheme();
   const currentRoundNum = tournament.rounds.length > 0 ? tournament.rounds.length : 1;
   const completedRounds = tournament.rounds.filter((r) => r.isCompleted).length;
 
@@ -420,6 +424,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <span className="text-[10px] text-neutral-500">Firestore</span>
           </div>
+
+          {/* Theme Toggle Button (Light / Dark) */}
+          <button
+            onClick={toggleTheme}
+            className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-neutral-300 hover:text-white hover:bg-neutral-900 border border-neutral-800/80 transition-colors"
+            title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
+          >
+            <div className="flex items-center gap-2.5">
+              {theme === 'dark' ? (
+                <Sun className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Moon className="w-4 h-4 text-blue-400" />
+              )}
+              <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+            </div>
+            <span className="text-[10px] font-mono text-neutral-400 uppercase tracking-wider">
+              {theme === 'dark' ? 'Theme: Dark' : 'Theme: Light'}
+            </span>
+          </button>
 
           {/* Account Profile Bar */}
           {currentUser ? (

@@ -26,7 +26,18 @@ import {
   getTournamentById,
 } from './services/tournamentFirestore';
 import { Sidebar } from './components/Sidebar';
-import { TopNavbar } from './components/TopNavbar';
+import {
+  Menu,
+  Sun,
+  Moon,
+  Share2,
+  Check,
+  GitBranch,
+  Trophy,
+  Table,
+  Users,
+} from 'lucide-react';
+import { useTheme } from './context/ThemeContext';
 import { RulesAuditModal } from './components/RulesAuditModal';
 import { PairingsView } from './components/PairingsView';
 import { StandingsTable } from './components/StandingsTable';
@@ -201,6 +212,19 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  const [copiedLink, setCopiedLink] = useState<boolean>(false);
+  const { theme, toggleTheme } = useTheme();
+
+  const handleCopyLiveLink = () => {
+    const url = typeof window !== 'undefined' ? `${window.location.origin}/?t=${tournament.id}` : '';
+    if (url && navigator.clipboard) {
+      navigator.clipboard.writeText(url);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2200);
+      showNotification('Copied live tournament link to clipboard!');
+    }
+  };
 
   const isInitialLoadRef = useRef(true);
   const prevRoundsCountRef = useRef(tournament.rounds.length);
@@ -873,31 +897,144 @@ export default function App() {
       {/* Main Workspace Frame (Responsive to Pinned Sidebar) */}
       <div
         className={`flex-1 flex flex-col min-w-0 transition-all duration-250 ease-out ${
-          isSidebarPinned && isSidebarOpen ? 'lg:pl-72 sm:lg:pl-80' : ''
+          isSidebarPinned && isSidebarOpen ? 'lg:pl-80' : ''
         }`}
       >
-        {/* Top Navbar with Menu Toggle, Breadcrumbs, Views & Quick Share */}
-        <TopNavbar
-          tournament={tournament}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          isSidebarOpen={isSidebarOpen}
-          onToggleSidebar={handleToggleSidebar}
-          onOpenParticipantSearch={() => setShowParticipantSearch(true)}
-          onOpenFideRules={() => setShowFideRulesModal(true)}
-          onOpenExport={() => setShowExportModal(true)}
-          onNewTournament={() => setShowNewTourneyModal(true)}
-          onOpenShareAccess={() => setShowShareAccessModal(true)}
-          onOpenAdminPortal={() => setShowAdminPortalModal(true)}
-          onSwitchToDirectorLogin={() => {
-            setIsParticipant(false);
-            localStorage.removeItem(PARTICIPANT_KEY);
-          }}
-          canEdit={canEdit}
-          isParticipant={isParticipant || (!canEdit && !currentUser)}
-          isSyncing={isSyncing}
-          currentUser={currentUser}
-        />
+        {/* Clean Workspace Header (Top Bar Removed) */}
+        <div className="px-4 sm:px-6 pt-4 pb-2 max-w-7xl mx-auto w-full">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-neutral-800/80 pb-3.5">
+            {/* Left: Menu Trigger & Tournament Info */}
+            <div className="flex items-center gap-3 min-w-0">
+              {/* Menu Button to toggle hidden sidebar */}
+              <button
+                onClick={handleToggleSidebar}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-neutral-200 hover:text-white bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-800 transition-all shrink-0 shadow-xs"
+                title="Open Navigation Menu (⌘+B)"
+                aria-label="Toggle Navigation Menu"
+              >
+                <Menu className="w-4 h-4 text-neutral-200" />
+                <span className="text-xs font-semibold">Menu</span>
+                <span className="hidden sm:inline text-[10px] font-mono text-neutral-500 bg-neutral-800/80 px-1 py-0.2 rounded">⌘B</span>
+              </button>
+
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h1 className="text-base sm:text-lg font-bold tracking-tight text-white truncate" title={tournament.name}>
+                    {tournament.name}
+                  </h1>
+                  <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-neutral-900 border border-neutral-800 text-neutral-400 shrink-0">
+                    Round {tournament.currentRoundNumber || (tournament.rounds.length > 0 ? tournament.rounds.length : 1)}/{tournament.roundsTotal}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-[11px] text-neutral-400 mt-0.5 font-mono">
+                  <span>{tournament.format === 'round_robin' ? 'Round-Robin' : tournament.format === 'knockout' ? 'Knockout' : 'FIDE Swiss'}</span>
+                  <span>·</span>
+                  <span>{tournament.players.length} Players</span>
+                  <span>·</span>
+                  <span className="capitalize">{tournament.status.replace('_', ' ')}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Center / Navigation Tabs: Pairings, Standings, Crosstable, Players */}
+            <nav className="flex items-center gap-1 bg-neutral-900/90 border border-neutral-800/90 p-1 rounded-xl overflow-x-auto scrollbar-none">
+              <button
+                onClick={() => setActiveTab('pairings')}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs rounded-lg font-medium transition-all shrink-0 ${
+                  activeTab === 'pairings'
+                    ? 'bg-white text-black font-semibold shadow-xs'
+                    : 'text-neutral-400 hover:text-white hover:bg-neutral-800/60'
+                }`}
+              >
+                <GitBranch className="w-3.5 h-3.5" />
+                <span>Pairings</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('standings')}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs rounded-lg font-medium transition-all shrink-0 ${
+                  activeTab === 'standings'
+                    ? 'bg-white text-black font-semibold shadow-xs'
+                    : 'text-neutral-400 hover:text-white hover:bg-neutral-800/60'
+                }`}
+              >
+                <Trophy className="w-3.5 h-3.5" />
+                <span>Standings</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('crosstable')}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs rounded-lg font-medium transition-all shrink-0 ${
+                  activeTab === 'crosstable'
+                    ? 'bg-white text-black font-semibold shadow-xs'
+                    : 'text-neutral-400 hover:text-white hover:bg-neutral-800/60'
+                }`}
+              >
+                <Table className="w-3.5 h-3.5" />
+                <span>Cross Table</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('players')}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs rounded-lg font-medium transition-all shrink-0 ${
+                  activeTab === 'players'
+                    ? 'bg-white text-black font-semibold shadow-xs'
+                    : 'text-neutral-400 hover:text-white hover:bg-neutral-800/60'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>Players</span>
+                <span className="text-[10px] font-mono opacity-80">({tournament.players.length})</span>
+              </button>
+            </nav>
+
+            {/* Right: Theme Toggle, Share Live, Sync Status */}
+            <div className="flex items-center gap-2 shrink-0">
+              {/* Theme Toggle (Light / Dark) */}
+              <button
+                onClick={toggleTheme}
+                className="p-1.5 rounded-lg text-neutral-300 hover:text-white bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-800 transition-colors"
+                title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} theme`}
+                aria-label="Toggle Light / Dark theme"
+              >
+                {theme === 'dark' ? (
+                  <Sun className="w-4 h-4 text-amber-400" />
+                ) : (
+                  <Moon className="w-4 h-4 text-blue-500" />
+                )}
+              </button>
+
+              {/* Share Live Link Button */}
+              <button
+                onClick={handleCopyLiveLink}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-neutral-200 hover:text-white bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-800 transition-colors"
+                title="Copy live sharing link"
+              >
+                {copiedLink ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-emerald-400">Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="w-3.5 h-3.5 text-neutral-300" />
+                    <span className="hidden sm:inline">Share</span>
+                  </>
+                )}
+              </button>
+
+              {/* Live Real-time Sync Status */}
+              <div
+                className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-mono text-neutral-400 bg-neutral-900/60 border border-neutral-800"
+                title={isSyncing ? 'Syncing to Firestore cloud...' : 'Live Realtime Sync Connected'}
+              >
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    isSyncing ? 'bg-amber-400 animate-ping' : 'bg-emerald-400 animate-pulse'
+                  }`}
+                />
+                <span className="hidden sm:inline">{isSyncing ? 'Saving...' : 'Live'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Notification Banner */}
         {bannerMessage && (

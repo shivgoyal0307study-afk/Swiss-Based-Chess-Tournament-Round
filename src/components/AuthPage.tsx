@@ -32,7 +32,10 @@ import {
   Calendar,
   Award,
   RefreshCw,
+  Sun,
+  Moon,
 } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 interface AuthPageProps {
   onSignInWithGoogle: () => Promise<void>;
@@ -61,6 +64,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   const [tournamentsLoading, setTournamentsLoading] = useState(true);
   const [eventSearchQuery, setEventSearchQuery] = useState('');
   const [eventFilter, setEventFilter] = useState<'all' | 'live' | 'finished'>('all');
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     const path = window.location.pathname;
@@ -238,6 +242,20 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
         {/* Quick Actions */}
         <div className="flex items-center gap-2">
+          {/* Theme Toggle Button */}
+          <button
+            onClick={toggleTheme}
+            className="p-1.5 rounded-lg text-neutral-300 hover:text-white bg-neutral-900 border border-neutral-800 hover:border-neutral-700 transition-colors"
+            title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} theme`}
+            aria-label="Toggle Light / Dark theme"
+          >
+            {theme === 'dark' ? (
+              <Sun className="w-4 h-4 text-amber-400" />
+            ) : (
+              <Moon className="w-4 h-4 text-blue-500" />
+            )}
+          </button>
+
           <button
             onClick={onEnterAsParticipant}
             className="text-xs text-neutral-300 hover:text-white flex items-center gap-1.5 py-1.5 px-3 rounded-lg border border-neutral-800 hover:border-neutral-700 bg-neutral-900 transition-colors"

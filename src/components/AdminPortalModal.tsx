@@ -132,16 +132,16 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => setFilter('pending')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 filter === 'pending'
-                  ? 'bg-white text-black'
+                  ? 'btn-brand-accent shadow-xs'
                   : 'bg-neutral-900 text-neutral-400 hover:text-white border border-neutral-800'
               }`}
             >
               <Clock className="w-3.5 h-3.5" />
               <span>Pending</span>
               {pendingCount > 0 && (
-                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${filter === 'pending' ? 'bg-black text-white' : 'bg-neutral-800 text-white'}`}>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${filter === 'pending' ? 'bg-black/20 text-current' : 'bg-neutral-800 text-white'}`}>
                   {pendingCount}
                 </span>
               )}
@@ -149,24 +149,24 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
 
             <button
               onClick={() => setFilter('approved')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 filter === 'approved'
-                  ? 'bg-white text-black'
+                  ? 'btn-brand-accent shadow-xs'
                   : 'bg-neutral-900 text-neutral-400 hover:text-white border border-neutral-800'
               }`}
             >
               <UserCheck className="w-3.5 h-3.5" />
               <span>Approved Directors</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${filter === 'approved' ? 'bg-black text-white' : 'bg-neutral-800 text-neutral-400'}`}>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${filter === 'approved' ? 'bg-black/20 text-current' : 'bg-neutral-800 text-neutral-400'}`}>
                 {approvedCount}
               </span>
             </button>
 
             <button
               onClick={() => setFilter('all')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 filter === 'all'
-                  ? 'bg-white text-black'
+                  ? 'btn-brand-accent shadow-xs'
                   : 'bg-neutral-900 text-neutral-400 hover:text-white border border-neutral-800'
               }`}
             >
@@ -261,7 +261,7 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                         <button
                           onClick={() => handleUpdateStatus(req.uid, 'approved')}
                           disabled={isProcessing}
-                          className="px-3 py-1.5 bg-white hover:bg-neutral-200 text-black text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                          className="px-3 py-1.5 btn-brand-accent text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
                         >
                           <CheckCircle className="w-3.5 h-3.5" />
                           <span>Approve Access</span>

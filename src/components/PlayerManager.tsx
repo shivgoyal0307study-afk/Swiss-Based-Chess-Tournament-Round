@@ -312,7 +312,7 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
 
             <button
               onClick={() => setShowAddForm(!showAddForm)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-amber-400 hover:bg-amber-300 text-neutral-950 rounded-lg transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold btn-brand-accent rounded-lg transition-colors cursor-pointer"
             >
               <UserPlus className="w-3.5 h-3.5" />
               <span>+ Add Player</span>
@@ -328,18 +328,18 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
           className="bg-neutral-900/60 border border-neutral-800 rounded-xl p-4 grid grid-cols-1 sm:grid-cols-5 gap-3"
         >
           <div className="sm:col-span-2">
-            <label className="block text-[11px] font-medium text-neutral-400 mb-1">Player Full Name</label>
+            <label className="block text-[11px] font-semibold text-neutral-400 mb-1">Player Full Name</label>
             <input
               type="text"
               required
               placeholder="Full Name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-1.5 text-xs text-neutral-100 focus:outline-none focus:border-amber-500"
+              className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-1.5 text-xs text-neutral-100 focus:outline-none focus:border-white"
             />
           </div>
           <div>
-            <label className="block text-[11px] font-medium text-neutral-400 mb-1">Rating</label>
+            <label className="block text-[11px] font-semibold text-neutral-400 mb-1">Rating</label>
             <input
               type="number"
               required
@@ -351,7 +351,7 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
             />
           </div>
           <div>
-            <label className="block text-[11px] font-medium text-neutral-400 mb-1">Title (Optional)</label>
+            <label className="block text-[11px] font-semibold text-neutral-400 mb-1">Title (Optional)</label>
             <select
               value={title}
               onChange={(e) => setTitle(e.target.value as Player['title'])}
@@ -370,14 +370,14 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
           <div className="flex items-end gap-2">
             <button
               type="submit"
-              className="flex-1 py-1.5 px-3 bg-white hover:bg-neutral-200 text-black font-semibold text-xs rounded-lg transition-colors"
+              className="flex-1 py-1.5 px-3 btn-brand-accent font-semibold text-xs rounded-lg transition-colors cursor-pointer"
             >
               Save Player
             </button>
             <button
               type="button"
               onClick={() => setShowAddForm(false)}
-              className="py-1.5 px-3 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs rounded-lg transition-colors"
+              className="py-1.5 px-3 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs rounded-lg transition-colors cursor-pointer"
             >
               Cancel
             </button>
@@ -640,35 +640,39 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
                     </td>
 
                     <td className="py-2.5 px-4 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        {Array.from({ length: tournament.roundsTotal }).map((_, rIdx) => {
-                          const rNum = rIdx + 1;
-                          const hasRequested = requestedByes.includes(rNum);
-                          const roundAlreadyStarted = rNum <= tournament.rounds.length;
+                      {tournament.format === 'knockout' ? (
+                        <span className="text-neutral-500 font-mono text-[11px]">—</span>
+                      ) : (
+                        <div className="flex items-center justify-center gap-1">
+                          {Array.from({ length: tournament.roundsTotal }).map((_, rIdx) => {
+                            const rNum = rIdx + 1;
+                            const hasRequested = requestedByes.includes(rNum);
+                            const roundAlreadyStarted = rNum <= tournament.rounds.length;
 
-                          return (
-                            <button
-                              key={rNum}
-                              disabled={isReadOnly || roundAlreadyStarted}
-                              onClick={() => toggleHalfPointBye(player.id, rNum)}
-                              className={`w-5 h-5 rounded text-[10px] font-mono transition-colors ${
-                                hasRequested
-                                  ? 'bg-white text-black font-bold'
-                                  : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
-                              } ${isReadOnly || roundAlreadyStarted ? 'opacity-50 cursor-not-allowed' : ''}`}
-                              title={
-                                isReadOnly
-                                  ? 'Read-only view'
-                                  : roundAlreadyStarted
-                                  ? `Round ${rNum} has already started`
-                                  : `Toggle Half-Point Bye for Round ${rNum}`
-                              }
-                            >
-                              {rNum}
-                            </button>
-                          );
-                        })}
-                      </div>
+                            return (
+                              <button
+                                key={rNum}
+                                disabled={isReadOnly || roundAlreadyStarted}
+                                onClick={() => toggleHalfPointBye(player.id, rNum)}
+                                className={`w-5 h-5 rounded text-[10px] font-mono transition-colors ${
+                                  hasRequested
+                                    ? 'bg-[#84dcc6] text-[#11221c] font-bold shadow-xs'
+                                    : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
+                                } ${isReadOnly || roundAlreadyStarted ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                title={
+                                  isReadOnly
+                                    ? 'Read-only view'
+                                    : roundAlreadyStarted
+                                    ? `Round ${rNum} has already started`
+                                    : `Toggle Half-Point Bye for Round ${rNum}`
+                                }
+                              >
+                                {rNum}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
                     </td>
 
                     <td className="py-2.5 px-3 text-center">

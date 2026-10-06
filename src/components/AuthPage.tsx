@@ -410,11 +410,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                           e.stopPropagation();
                           handleOpenTournament(t);
                         }}
-                        className="px-3.5 py-2 rounded-lg bg-white hover:bg-neutral-200 text-black text-xs font-semibold transition-all flex items-center gap-1.5"
+                        className="px-3.5 py-2 rounded-lg btn-brand-accent text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
                       >
-                        <Eye className="w-3.5 h-3.5 text-black" />
+                        <Eye className="w-3.5 h-3.5 text-current" />
                         <span>View Live Board</span>
-                        <ArrowRight className="w-3.5 h-3.5 text-black" />
+                        <ArrowRight className="w-3.5 h-3.5 text-current" />
                       </button>
                     </div>
                   </div>
@@ -651,7 +651,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-2.5 px-4 rounded-lg bg-white hover:bg-neutral-200 text-black font-semibold text-xs transition-colors mt-2 disabled:opacity-50"
+                  className="w-full py-2.5 px-4 rounded-lg btn-brand-accent font-semibold text-xs transition-colors mt-2 disabled:opacity-50 cursor-pointer"
                 >
                   {loading
                     ? 'Processing...'

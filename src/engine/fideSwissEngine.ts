@@ -791,7 +791,12 @@ function solveDutchPairings(
   return bestSolution;
 }
 
-import { generateRoundRobinPairings, generateKnockoutPairings } from './formatPairings';
+import {
+  generateRoundRobinPairings,
+  generateKnockoutPairings,
+  calculateFormatTotalRounds,
+} from './formatPairings';
+export { calculateFormatTotalRounds };
 
 /**
  * Public facade to generate pairings for any round (Swiss, Round-Robin, or Knockout).

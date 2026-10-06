@@ -214,3 +214,24 @@ export function generateKnockoutPairings(
 
   return games;
 }
+
+/**
+ * Calculates total rounds for a tournament based on format and active players count
+ */
+export function calculateFormatTotalRounds(
+  format?: 'swiss' | 'round_robin' | 'knockout',
+  playerCount = 0,
+  fallbackSwissRounds = 5
+): number {
+  if (format === 'round_robin') {
+    if (playerCount < 2) return 1;
+    // For even N: N - 1 rounds. For odd N: N rounds (with byes).
+    return playerCount % 2 === 0 ? playerCount - 1 : playerCount;
+  }
+  if (format === 'knockout') {
+    if (playerCount < 2) return 1;
+    // Bracket elimination: ceil(log2(N))
+    return Math.max(1, Math.ceil(Math.log2(playerCount)));
+  }
+  return fallbackSwissRounds;
+}

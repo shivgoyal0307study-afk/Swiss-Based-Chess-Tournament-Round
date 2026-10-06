@@ -85,7 +85,7 @@ export const PendingApprovalView: React.FC<PendingApprovalViewProps> = ({
             <button
               onClick={handleRefresh}
               disabled={checking}
-              className="w-full py-2.5 bg-white hover:bg-neutral-200 text-black font-semibold text-xs rounded-lg transition-all flex items-center justify-center gap-2"
+              className="w-full py-2.5 btn-brand-accent font-semibold text-xs rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${checking ? 'animate-spin' : ''}`} />
               <span>{checking ? 'Checking Status...' : 'Check Approval Status'}</span>

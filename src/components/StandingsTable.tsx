@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { StandingsRow, Tournament } from '../types/tournament';
-import { ChevronDown, ChevronUp, Search, Info, HelpCircle, FileDown } from 'lucide-react';
+import { ChevronDown, ChevronUp, Search, Info, FileDown } from 'lucide-react';
 import { exportStandingsPdf } from '../utils/pdfExport';
 
 interface StandingsTableProps {
@@ -17,7 +17,6 @@ interface StandingsTableProps {
 export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, totalRounds, tournament }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
-  const [showTiebreakerHelp, setShowTiebreakerHelp] = useState(false);
 
   const filteredStandings = standings.filter(
     (row) =>
@@ -32,24 +31,16 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, total
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
       {/* Header & Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-bold text-neutral-100 flex items-center gap-2">
             Tournament Standings
           </h2>
-          <div className="flex items-center gap-2 text-xs text-neutral-400 mt-0.5">
-            <span>FIDE Official Tiebreaker Hierarchy</span>
-            <span aria-hidden="true">·</span>
-            <button
-              onClick={() => setShowTiebreakerHelp(!showTiebreakerHelp)}
-              className="text-neutral-300 hover:text-white underline inline-flex items-center gap-1"
-            >
-              <HelpCircle className="w-3.5 h-3.5" />
-              Tiebreaker Rules
-            </button>
-          </div>
+          <p className="text-xs text-neutral-400 mt-0.5 font-mono">
+            {standings.length} Players Registered
+          </p>
         </div>
 
         {/* Search & PDF Download */}
@@ -57,10 +48,10 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, total
           {tournament && (
             <button
               onClick={handleDownloadPdf}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-neutral-300 hover:text-white bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded-lg transition-colors shrink-0"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-neutral-300 hover:text-white bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded-lg transition-colors shrink-0 cursor-pointer"
               title="Download PDF of Standings & Tiebreakers"
             >
-              <FileDown className="w-3.5 h-3.5 text-white" />
+              <FileDown className="w-3.5 h-3.5 text-current" />
               <span>Download PDF</span>
             </button>
           )}
@@ -77,47 +68,6 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, total
           </div>
         </div>
       </div>
-
-      {/* Tiebreaker Rules Help Box */}
-      {showTiebreakerHelp && (
-        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 text-xs text-neutral-300 space-y-2">
-          <div className="font-semibold text-neutral-100 flex items-center justify-between">
-            <span>FIDE Tiebreaker Hierarchy (Evaluated in strict sequence):</span>
-            <button
-              onClick={() => setShowTiebreakerHelp(false)}
-              className="text-neutral-500 hover:text-neutral-300"
-            >
-              ✕
-            </button>
-          </div>
-          <ol className="list-decimal pl-5 space-y-1 text-neutral-400">
-            <li>
-              <strong className="text-neutral-200">Total Points (Pts):</strong> Primary score (1 for win, 1 for bye, 0.5 for draw, 0 for loss).
-            </li>
-            <li>
-              <strong className="text-neutral-200">Direct Encounter (DE):</strong> Score in mutual games among tied players. Only applied if ALL players in the tied group played each other.
-            </li>
-            <li>
-              <strong className="text-neutral-200">Buchholz Cut 1 (BH-C1):</strong> Sum of opponents' scores, excluding the single lowest-scoring opponent. Unplayed games apply FIDE C.04.1.f Virtual Opponent adjustment.
-            </li>
-            <li>
-              <strong className="text-neutral-200">Buchholz (BH):</strong> Total sum of scores of all opponents.
-            </li>
-            <li>
-              <strong className="text-neutral-200">Sonneborn-Berger (SB):</strong> Sum of 100% of scores of defeated opponents + 50% of scores of drawn opponents.
-            </li>
-            <li>
-              <strong className="text-neutral-200">Cumulative Score (Prog):</strong> Sum of progressive tournament scores after each round.
-            </li>
-            <li>
-              <strong className="text-neutral-200">Number of Wins (W):</strong> Total actual victories won.
-            </li>
-            <li>
-              <strong className="text-neutral-200">Initial Rating:</strong> Higher initial starting rating breaks remaining ties.
-            </li>
-          </ol>
-        </div>
-      )}
 
       {/* Standings Table */}
       <div className="bg-neutral-900/60 border border-neutral-800 rounded-xl overflow-hidden">

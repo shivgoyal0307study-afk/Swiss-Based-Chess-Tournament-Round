@@ -62,7 +62,7 @@ export const UserTournamentsModal: React.FC<UserTournamentsModalProps> = ({
               onClose();
               onNewTournament();
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-white hover:bg-neutral-200 text-black rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold btn-brand-accent rounded-lg transition-colors cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>New Tournament</span>
@@ -102,7 +102,7 @@ export const UserTournamentsModal: React.FC<UserTournamentsModalProps> = ({
                     <div className="flex items-center gap-2 flex-wrap">
                       <h4 className="text-sm font-semibold text-white truncate">{t.name}</h4>
                       {isCurrent && (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-white text-black">
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#84dcc6] text-[#11221c] dark:bg-[#84dcc6] dark:text-[#11221c]">
                           <Check className="w-2.5 h-2.5" /> Active
                         </span>
                       )}
@@ -148,7 +148,7 @@ export const UserTournamentsModal: React.FC<UserTournamentsModalProps> = ({
                           onSelectTournament(t);
                           onClose();
                         }}
-                        className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-black bg-white hover:bg-neutral-200 rounded-lg transition-all"
+                        className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold btn-brand-accent rounded-lg transition-all cursor-pointer"
                       >
                         Open
                         <ArrowRight className="w-3 h-3" />

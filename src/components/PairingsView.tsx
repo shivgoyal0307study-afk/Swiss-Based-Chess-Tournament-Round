@@ -8,6 +8,7 @@
 import React, { useState } from 'react';
 import { GameResult, Player, Tournament, StandingsRow } from '../types/tournament';
 import { calculatePlayerStats } from '../engine/fideSwissEngine';
+import { calculateFormatTotalRounds } from '../engine/formatPairings';
 import {
   Play,
   ChevronLeft,
@@ -20,11 +21,8 @@ import {
   History,
   Share2,
   Check,
-  BookOpen,
-  Info,
 } from 'lucide-react';
 import { exportPairingsPdf } from '../utils/pdfExport';
-import { FideRulesModal } from './FideRulesModal';
 
 interface PairingsViewProps {
   tournament: Tournament;
@@ -81,13 +79,7 @@ export const PairingsView: React.FC<PairingsViewProps> = ({
               {isReadOnly
                 ? 'The arbiter has not generated Round 1 pairings yet. Check back soon for live pairings.'
                 : hasEnoughPlayers
-                ? `${tournament.players.length} players registered for ${tournament.roundsTotal} rounds (${
-                    tournament.format === 'round_robin'
-                      ? 'Round-Robin'
-                      : tournament.format === 'knockout'
-                      ? 'Knockout'
-                      : 'Swiss'
-                  }). Top seed begins with ${tournament.round1TopSeedColor === 'W' ? 'White' : 'Black'}.`
+                ? `${tournament.players.length} players registered. Ready to start.`
                 : 'Register at least 2 active players in the Players tab to generate pairings.'}
             </p>
           </div>
@@ -96,9 +88,9 @@ export const PairingsView: React.FC<PairingsViewProps> = ({
             <div className="pt-2">
               <button
                 onClick={onStartTournament}
-                className="px-5 py-2.5 bg-white hover:bg-neutral-200 text-black font-semibold text-xs rounded-lg transition-colors inline-flex items-center gap-2"
+                className="px-5 py-2.5 btn-brand-accent font-semibold text-xs rounded-xl transition-all inline-flex items-center gap-2 shadow-sm cursor-pointer"
               >
-                <Play className="w-3.5 h-3.5 fill-black" />
+                <Play className="w-3.5 h-3.5 fill-current" />
                 <span>Generate Round 1 Pairings</span>
               </button>
             </div>
@@ -126,8 +118,13 @@ export const PairingsView: React.FC<PairingsViewProps> = ({
   const isRoundLocked = roundNum < latestRoundNum || isReadOnly;
   const isViewingPastRound = roundNum < latestRoundNum;
 
-  const canGenerateNext = !isReadOnly && isRoundFinished && isLatestRound && roundNum < tournament.roundsTotal;
-  const isTournamentFinished = isRoundFinished && roundNum === tournament.roundsTotal;
+  const effectiveTotalRounds =
+    tournament.format === 'round_robin' || tournament.format === 'knockout'
+      ? calculateFormatTotalRounds(tournament.format, tournament.players.filter((p) => p.active).length, tournament.roundsTotal)
+      : tournament.roundsTotal;
+
+  const canGenerateNext = !isReadOnly && isRoundFinished && isLatestRound && roundNum < effectiveTotalRounds;
+  const isTournamentFinished = isRoundFinished && roundNum >= effectiveTotalRounds;
 
   // Filter games by player search
   const filteredGames = currentRound.games.filter((game) => {
@@ -187,19 +184,19 @@ export const PairingsView: React.FC<PairingsViewProps> = ({
               <button
                 key={r.roundNumber}
                 onClick={() => setSelectedRoundNumber(r.roundNumber)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                   isSelected
-                    ? 'bg-white text-black border border-white'
+                    ? 'round-tab-active shadow-xs'
                     : 'bg-neutral-900 text-neutral-400 hover:text-white border border-neutral-800'
                 }`}
               >
                 <span>Round {r.roundNumber}</span>
                 {isPast ? (
-                  <Lock className={`w-3 h-3 ${isSelected ? 'text-neutral-500' : 'text-neutral-600'}`} />
+                  <Lock className={`w-3 h-3 ${isSelected ? 'opacity-80' : 'text-neutral-500'}`} />
                 ) : allDone ? (
-                  <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-black' : 'bg-white'}`} />
+                  <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-current' : 'bg-white'}`} />
                 ) : (
-                  <span className={`w-1.5 h-1.5 rounded-full border ${isSelected ? 'border-black' : 'border-neutral-400'}`} />
+                  <span className={`w-1.5 h-1.5 rounded-full border ${isSelected ? 'border-current' : 'border-neutral-400'}`} />
                 )}
               </button>
             );
@@ -216,50 +213,34 @@ export const PairingsView: React.FC<PairingsViewProps> = ({
           </button>
         </div>
 
-        {/* Global Arbiter, Live & Export Actions */}
-        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center flex-wrap">
-          {/* Live Sync Status */}
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono bg-neutral-900 border border-neutral-800 text-neutral-300">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Live Real-Time Sync</span>
-          </span>
-
+        {/* Actions: Share, PDF, Undo & Pair Next */}
+        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
           {/* Share Live Link */}
           <button
             onClick={handleCopyLiveLink}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-neutral-300 hover:text-white bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded-lg transition-colors"
-            title="Copy real-time live link to share with participants and spectators"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-neutral-300 hover:text-white bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded-lg transition-colors cursor-pointer"
+            title="Copy real-time live link to share"
           >
             {copiedLink ? (
               <>
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-emerald-400 font-medium">Link Copied!</span>
+                <Check className="w-3.5 h-3.5 text-emerald-500" />
+                <span className="text-emerald-500 font-medium">Copied!</span>
               </>
             ) : (
               <>
-                <Share2 className="w-3.5 h-3.5 text-white" />
+                <Share2 className="w-3.5 h-3.5 text-current" />
                 <span>Share Live</span>
               </>
             )}
           </button>
 
-          {/* Official FIDE Rules Modal Button */}
-          <button
-            onClick={() => setShowFideRules(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-neutral-300 hover:text-white bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded-lg transition-colors"
-            title="View 9 official FIDE Swiss rules and invariants"
-          >
-            <BookOpen className="w-3.5 h-3.5 text-white" />
-            <span className="hidden sm:inline">FIDE Rules</span>
-          </button>
-
           {/* PDF Download Button */}
           <button
             onClick={handleDownloadPdf}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-neutral-300 hover:text-white bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-neutral-300 hover:text-white bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded-lg transition-colors cursor-pointer"
             title="Download PDF of Round Pairings & Results"
           >
-            <FileDown className="w-3.5 h-3.5 text-white" />
+            <FileDown className="w-3.5 h-3.5 text-current" />
             <span>PDF</span>
           </button>
 
@@ -270,14 +251,14 @@ export const PairingsView: React.FC<PairingsViewProps> = ({
               title="Undo current round pairings and results"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>Undo Round</span>
+              <span>Undo</span>
             </button>
           )}
 
           {canGenerateNext && (
             <button
               onClick={onGenerateNextRound}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold bg-white hover:bg-neutral-200 text-black rounded-lg transition-colors"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold btn-brand-accent rounded-lg transition-colors shadow-xs cursor-pointer"
             >
               <span>Pair Round {roundNum + 1}</span>
               <ChevronRight className="w-3.5 h-3.5" />
@@ -303,7 +284,7 @@ export const PairingsView: React.FC<PairingsViewProps> = ({
           </div>
           <button
             onClick={() => setSelectedRoundNumber(latestRoundNum)}
-            className="px-2.5 py-1 bg-white hover:bg-neutral-200 text-black font-semibold text-[11px] rounded transition-colors shrink-0"
+            className="px-2.5 py-1 btn-brand-accent font-semibold text-[11px] rounded transition-colors shrink-0 cursor-pointer"
           >
             Jump to Live Round {latestRoundNum}
           </button>
@@ -342,7 +323,7 @@ export const PairingsView: React.FC<PairingsViewProps> = ({
 
           <div className="w-24 h-1.5 bg-neutral-900 border border-neutral-800 rounded-full overflow-hidden">
             <div
-              className="h-full bg-white transition-all duration-300"
+              className="h-full bg-[#84dcc6] dark:bg-[#84dcc6] transition-all duration-300"
               style={{
                 width: `${totalGamesCount > 0 ? (completedGamesCount / totalGamesCount) * 100 : 0}%`,
               }}
@@ -410,11 +391,11 @@ export const PairingsView: React.FC<PairingsViewProps> = ({
 
                   {/* White Player */}
                   <div className="flex-1 flex items-center gap-2.5 min-w-0">
-                    <span className="w-5 h-5 rounded-full bg-white text-black font-bold flex items-center justify-center text-[11px] shrink-0">
+                    <span className="w-5 h-5 rounded-full piece-badge-white font-bold flex items-center justify-center text-[11px] shrink-0 shadow-xs">
                       ♔
                     </span>
                     <div className="min-w-0 truncate">
-                      <span className="font-medium text-white truncate">{whitePlayer.name}</span>
+                      <span className="font-semibold text-white truncate">{whitePlayer.name}</span>
                       <span className="text-neutral-400 font-mono text-[11px] ml-1.5 shrink-0">
                         ({whitePlayer.rating})
                       </span>
@@ -436,7 +417,7 @@ export const PairingsView: React.FC<PairingsViewProps> = ({
                       }}
                       className={`px-2.5 py-1 text-xs font-mono font-medium rounded transition-colors ${
                         game.result === '1-0'
-                          ? 'bg-white text-black font-bold'
+                          ? 'result-btn-active'
                           : isRoundLocked
                           ? 'text-neutral-500 cursor-not-allowed'
                           : 'text-neutral-300 hover:text-white hover:bg-neutral-800'
@@ -456,7 +437,7 @@ export const PairingsView: React.FC<PairingsViewProps> = ({
                         }}
                         className={`px-2.5 py-1 text-xs font-mono font-medium rounded transition-colors ${
                           game.result === '1/2-1/2'
-                            ? 'bg-white text-black font-bold'
+                            ? 'result-btn-active'
                             : isRoundLocked
                             ? 'text-neutral-500 cursor-not-allowed'
                             : 'text-neutral-300 hover:text-white hover:bg-neutral-800'
@@ -465,7 +446,7 @@ export const PairingsView: React.FC<PairingsViewProps> = ({
                         ½ - ½
                       </button>
                     ) : (
-                      <span className="px-1 text-[10px] text-neutral-500">vs</span>
+                      <span className="px-1 text-[10px] text-neutral-500 font-mono">vs</span>
                     )}
 
                     {/* 0-1 */}
@@ -478,7 +459,7 @@ export const PairingsView: React.FC<PairingsViewProps> = ({
                       }}
                       className={`px-2.5 py-1 text-xs font-mono font-medium rounded transition-colors ${
                         game.result === '0-1'
-                          ? 'bg-white text-black font-bold'
+                          ? 'result-btn-active'
                           : isRoundLocked
                           ? 'text-neutral-500 cursor-not-allowed'
                           : 'text-neutral-300 hover:text-white hover:bg-neutral-800'
@@ -497,34 +478,18 @@ export const PairingsView: React.FC<PairingsViewProps> = ({
                       <span className="text-neutral-400 font-mono text-[11px] mr-1.5 shrink-0">
                         ({blackPlayer.rating})
                       </span>
-                      <span className="font-medium text-white truncate">{blackPlayer.name}</span>
+                      <span className="font-semibold text-white truncate">{blackPlayer.name}</span>
                     </div>
-                    <span className="w-5 h-5 rounded-full bg-neutral-900 border border-neutral-700 text-white font-bold flex items-center justify-center text-[11px] shrink-0">
+                    <span className="w-5 h-5 rounded-full piece-badge-black font-bold flex items-center justify-center text-[11px] shrink-0 shadow-xs">
                       ♚
                     </span>
                   </div>
                 </div>
-
-                {/* FIDE Rule 9 Transparent Pairing Rationale */}
-                {game.pairingExplanation && (
-                  <div className="mt-2 pt-2 border-t border-neutral-900 flex items-center justify-between text-[11px] text-neutral-400 font-mono">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="w-1.5 h-1.5 rounded-full bg-white/70 shrink-0" />
-                      <span className="truncate">{game.pairingExplanation}</span>
-                    </div>
-                    <span className="text-[10px] text-neutral-500 uppercase shrink-0 font-medium ml-2">
-                      FIDE Rule 9
-                    </span>
-                  </div>
-                )}
               </div>
             );
           })
         )}
       </div>
-
-      {/* Official FIDE Rules Reference Modal */}
-      <FideRulesModal isOpen={showFideRules} onClose={() => setShowFideRules(false)} />
     </div>
   );
 };

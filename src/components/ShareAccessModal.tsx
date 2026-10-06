@@ -112,7 +112,7 @@ export const ShareAccessModal: React.FC<ShareAccessModalProps> = ({
               </div>
               <button
                 type="submit"
-                className="px-3.5 py-2 bg-white hover:bg-neutral-200 text-black font-semibold text-xs rounded-lg transition-colors flex items-center gap-1 shrink-0"
+                className="px-3.5 py-2 btn-brand-accent font-semibold text-xs rounded-lg transition-colors flex items-center gap-1 shrink-0 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add</span>

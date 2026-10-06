@@ -155,9 +155,9 @@ export const ExportImportModal: React.FC<ExportImportModalProps> = ({
                   </div>
                   <button
                     onClick={() => exportStandingsPdf(tournament, standings)}
-                    className="w-full py-2 px-3 bg-white hover:bg-neutral-200 text-black font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5"
+                    className="w-full py-2 px-3 btn-brand-accent font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    <FileDown className="w-3.5 h-3.5 text-black" />
+                    <FileDown className="w-3.5 h-3.5 text-current" />
                     <span>Download Standings PDF</span>
                   </button>
                 </div>
@@ -174,9 +174,9 @@ export const ExportImportModal: React.FC<ExportImportModalProps> = ({
                   </div>
                   <button
                     onClick={() => exportPairingsPdf(tournament, currentRoundNum, standings)}
-                    className="w-full py-2 px-3 bg-white hover:bg-neutral-200 text-black font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5"
+                    className="w-full py-2 px-3 btn-brand-accent font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    <FileDown className="w-3.5 h-3.5 text-black" />
+                    <FileDown className="w-3.5 h-3.5 text-current" />
                     <span>Download Round {currentRoundNum} PDF</span>
                   </button>
                 </div>
@@ -211,9 +211,9 @@ export const ExportImportModal: React.FC<ExportImportModalProps> = ({
               </p>
               <button
                 onClick={handleDownloadCsv}
-                className="px-4 py-2 bg-white hover:bg-neutral-200 text-black font-semibold rounded-lg transition-colors flex items-center gap-2"
+                className="px-4 py-2 btn-brand-accent font-semibold rounded-lg transition-colors flex items-center gap-2 cursor-pointer"
               >
-                <Download className="w-4 h-4 text-black" />
+                <Download className="w-4 h-4 text-current" />
                 <span>Download Standings CSV</span>
               </button>
             </div>
@@ -228,16 +228,16 @@ export const ExportImportModal: React.FC<ExportImportModalProps> = ({
               <div className="flex gap-2">
                 <button
                   onClick={handleDownloadJson}
-                  className="px-3.5 py-1.5 bg-white hover:bg-neutral-200 text-black font-semibold rounded-lg transition-colors flex items-center gap-1.5"
+                  className="px-3.5 py-1.5 btn-brand-accent font-semibold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
                 >
-                  <Download className="w-3.5 h-3.5 text-black" />
+                  <Download className="w-3.5 h-3.5 text-current" />
                   <span>Download .json Backup</span>
                 </button>
                 <button
                   onClick={handleCopyJson}
-                  className="px-3.5 py-1.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-200 rounded-lg transition-colors flex items-center gap-1.5"
+                  className="px-3.5 py-1.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-200 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
                 >
-                  {copied ? <Check className="w-3.5 h-3.5 text-white" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-current" />}
                   <span>{copied ? 'Copied' : 'Copy JSON'}</span>
                 </button>
               </div>
@@ -269,7 +269,7 @@ export const ExportImportModal: React.FC<ExportImportModalProps> = ({
               />
               <button
                 onClick={handleImportSubmit}
-                className="px-4 py-2 bg-white hover:bg-neutral-200 text-black font-semibold rounded-lg transition-colors"
+                className="px-4 py-2 btn-brand-accent font-semibold rounded-lg transition-colors cursor-pointer"
               >
                 Restore Tournament Data
               </button>

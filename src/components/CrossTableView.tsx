@@ -74,18 +74,18 @@ export const CrossTableView: React.FC<CrossTableViewProps> = ({ tournament, stan
       if (game.result === '1-0' || game.result === '1-0F') {
         wSymbol = `${bSeed}w1`;
         bSymbol = `${wSeed}b0`;
-        wBg = 'bg-white text-black font-semibold';
-        bBg = 'bg-neutral-950 text-neutral-500';
+        wBg = 'cross-cell-win bg-white text-black font-semibold';
+        bBg = 'cross-cell-loss bg-neutral-950 text-neutral-500';
       } else if (game.result === '0-1' || game.result === '0-1F') {
         wSymbol = `${bSeed}w0`;
         bSymbol = `${wSeed}b1`;
-        wBg = 'bg-neutral-950 text-neutral-500';
-        bBg = 'bg-white text-black font-semibold';
+        wBg = 'cross-cell-loss bg-neutral-950 text-neutral-500';
+        bBg = 'cross-cell-win bg-white text-black font-semibold';
       } else if (game.result === '1/2-1/2') {
         wSymbol = `${bSeed}w½`;
         bSymbol = `${wSeed}b½`;
-        wBg = 'bg-neutral-900 border border-neutral-800 text-neutral-300 font-medium';
-        bBg = 'bg-neutral-900 border border-neutral-800 text-neutral-300 font-medium';
+        wBg = 'cross-cell-draw bg-neutral-900 border border-neutral-800 text-neutral-300 font-medium';
+        bBg = 'cross-cell-draw bg-neutral-900 border border-neutral-800 text-neutral-300 font-medium';
       }
 
       playerRoundData.get(wId)?.set(round.roundNumber, {
@@ -104,12 +104,11 @@ export const CrossTableView: React.FC<CrossTableViewProps> = ({ tournament, stan
 
   // Display rows sorted by current Standings rank
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
       <div>
-        <h2 className="text-lg font-bold text-neutral-100">FIDE Crosstable Matrix</h2>
-        <p className="text-xs text-neutral-400 mt-0.5">
-          Cell format: <span className="font-mono text-neutral-300">[Opponent Seed][Color (w/b)][Result (1, ½, 0)]</span>.
-          E.g. <span className="font-mono text-neutral-200">5w1</span> means played seed #5 with White and won.
+        <h2 className="text-lg font-bold text-neutral-100">Cross Table</h2>
+        <p className="text-xs text-neutral-400 mt-0.5 font-mono">
+          Round-by-round tournament matrix
         </p>
       </div>
 

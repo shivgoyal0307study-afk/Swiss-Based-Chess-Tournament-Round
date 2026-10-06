@@ -28,17 +28,14 @@ export const NewTournamentModal: React.FC<NewTournamentModalProps> = ({
 
   const handleFormatChange = (newFormat: TournamentFormat) => {
     setFormat(newFormat);
-    if (newFormat === 'knockout') {
-      setRoundsTotal(4); // Typical for 16-player bracket
-    } else if (newFormat === 'round_robin') {
-      setRoundsTotal(5);
-    } else {
-      setRoundsTotal(5);
-    }
   };
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Swiss requires manual rounds or defaults to 5.
+    // Knockout & Round-Robin rounds depend entirely on registered player count.
+    const initialRounds = format === 'swiss' ? (Number(roundsTotal) || 5) : 1;
 
     const newTournament: Tournament = {
       id: `tourney-${Date.now()}`,
@@ -49,7 +46,7 @@ export const NewTournamentModal: React.FC<NewTournamentModalProps> = ({
       allowedEmails: [],
       isPublic: true,
       format,
-      roundsTotal: Number(roundsTotal) || 5,
+      roundsTotal: initialRounds,
       currentRoundNumber: 1,
       players: [],
       rounds: [],
@@ -92,45 +89,69 @@ export const NewTournamentModal: React.FC<NewTournamentModalProps> = ({
               <button
                 type="button"
                 onClick={() => handleFormatChange('swiss')}
-                className={`py-2 px-3 rounded-lg border text-left transition-all ${
+                className={`py-2 px-3 rounded-lg border text-left transition-all cursor-pointer ${
                   format === 'swiss'
-                    ? 'bg-white text-black font-semibold border-white'
+                    ? 'btn-brand-accent font-semibold border-transparent shadow-xs'
                     : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white'
                 }`}
               >
                 <div className="text-xs">FIDE Swiss</div>
-                <div className={`text-[10px] mt-0.5 font-normal ${format === 'swiss' ? 'text-neutral-700' : 'text-neutral-500'}`}>Dutch System</div>
+                <div className={`text-[10px] mt-0.5 font-normal ${format === 'swiss' ? 'opacity-80' : 'text-neutral-500'}`}>Dutch System</div>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleFormatChange('round_robin')}
-                className={`py-2 px-3 rounded-lg border text-left transition-all ${
+                className={`py-2 px-3 rounded-lg border text-left transition-all cursor-pointer ${
                   format === 'round_robin'
-                    ? 'bg-white text-black font-semibold border-white'
+                    ? 'btn-brand-accent font-semibold border-transparent shadow-xs'
                     : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white'
                 }`}
               >
                 <div className="text-xs">Round-Robin</div>
-                <div className={`text-[10px] mt-0.5 font-normal ${format === 'round_robin' ? 'text-neutral-700' : 'text-neutral-500'}`}>Berger Tables</div>
+                <div className={`text-[10px] mt-0.5 font-normal ${format === 'round_robin' ? 'opacity-80' : 'text-neutral-500'}`}>Berger Tables</div>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleFormatChange('knockout')}
-                className={`py-2 px-3 rounded-lg border text-left transition-all ${
+                className={`py-2 px-3 rounded-lg border text-left transition-all cursor-pointer ${
                   format === 'knockout'
-                    ? 'bg-white text-black font-semibold border-white'
+                    ? 'btn-brand-accent font-semibold border-transparent shadow-xs'
                     : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white'
                 }`}
               >
                 <div className="text-xs">Knockout</div>
-                <div className={`text-[10px] mt-0.5 font-normal ${format === 'knockout' ? 'text-neutral-700' : 'text-neutral-500'}`}>Elimination Bracket</div>
+                <div className={`text-[10px] mt-0.5 font-normal ${format === 'knockout' ? 'opacity-80' : 'text-neutral-500'}`}>Elimination Bracket</div>
               </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          {format === 'swiss' ? (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block font-medium text-neutral-300 mb-1">Location / Venue</label>
+                <input
+                  type="text"
+                  placeholder="Optional"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-white placeholder-neutral-500 focus:outline-none focus:border-white transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block font-medium text-neutral-300 mb-1">Total Scheduled Rounds</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={roundsTotal}
+                  onChange={(e) => setRoundsTotal(Number(e.target.value))}
+                  className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-white transition-colors"
+                />
+              </div>
+            </div>
+          ) : (
             <div>
               <label className="block font-medium text-neutral-300 mb-1">Location / Venue</label>
               <input
@@ -140,19 +161,11 @@ export const NewTournamentModal: React.FC<NewTournamentModalProps> = ({
                 onChange={(e) => setLocation(e.target.value)}
                 className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-white placeholder-neutral-500 focus:outline-none focus:border-white transition-colors"
               />
+              <p className="text-[11px] text-neutral-400 mt-1.5">
+                Number of rounds is automatically determined by registered players.
+              </p>
             </div>
-            <div>
-              <label className="block font-medium text-neutral-300 mb-1">Total Scheduled Rounds</label>
-              <input
-                type="number"
-                min={1}
-                max={50}
-                value={roundsTotal}
-                onChange={(e) => setRoundsTotal(Number(e.target.value))}
-                className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-white transition-colors"
-              />
-            </div>
-          </div>
+          )}
 
           <div>
             <label className="block font-medium text-neutral-300 mb-1">
@@ -195,7 +208,7 @@ export const NewTournamentModal: React.FC<NewTournamentModalProps> = ({
             </button>
             <button
               type="submit"
-              className="px-4 py-1.5 text-xs font-semibold bg-white hover:bg-neutral-200 text-black rounded-lg transition-colors"
+              className="px-4 py-1.5 text-xs font-semibold btn-brand-accent rounded-lg transition-colors cursor-pointer"
             >
               Create Tournament
             </button>

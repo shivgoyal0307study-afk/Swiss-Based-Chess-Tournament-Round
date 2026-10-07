@@ -48,12 +48,30 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
 
   const handleUpdateStatus = async (uid: string, status: 'approved' | 'rejected') => {
     setProcessingUid(uid);
+    const target = requests.find((r) => r.uid === uid);
+    
+    // Optimistic UI update
+    setRequests((prev) =>
+      prev.map((r) => (r.uid === uid ? { ...r, status, reviewedAt: Date.now() } : r))
+    );
+
     try {
-      await updateDirectorStatus(uid, status, currentUserEmail || SUPER_ADMIN_EMAIL);
+      await updateDirectorStatus(
+        uid,
+        status,
+        currentUserEmail || SUPER_ADMIN_EMAIL,
+        target?.email,
+        target?.displayName
+      );
       if (onShowNotification) {
         onShowNotification(`Director request ${status}.`);
       }
     } catch (err: any) {
+      console.error('Failed to update director status:', err);
+      // Revert on error
+      if (target) {
+        setRequests((prev) => prev.map((r) => (r.uid === uid ? target : r)));
+      }
       alert(`Action failed: ${err.message}`);
     } finally {
       setProcessingUid(null);
@@ -65,15 +83,36 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
     const clean = manualEmail.trim().toLowerCase();
     if (!clean) return;
 
-    const pseudoUid = `manual_${Date.now()}`;
+    // Check if an existing request already exists with this email
+    const existing = requests.find((r) => r.email && r.email.toLowerCase() === clean);
+    if (existing) {
+      setManualEmail('');
+      await handleUpdateStatus(existing.uid, 'approved');
+      return;
+    }
+
+    const pseudoUid = `preapproved_${clean.replace(/[^a-zA-Z0-9]/g, '_')}`;
     setProcessingUid(pseudoUid);
+
+    const newApprovedReq: DirectorRequest = {
+      uid: pseudoUid,
+      email: clean,
+      status: 'approved',
+      requestedAt: Date.now(),
+      reviewedAt: Date.now(),
+      reviewedBy: currentUserEmail || SUPER_ADMIN_EMAIL,
+    };
+
+    setRequests((prev) => [newApprovedReq, ...prev.filter((r) => r.uid !== pseudoUid)]);
+
     try {
       await updateDirectorStatus(pseudoUid, 'approved', currentUserEmail || SUPER_ADMIN_EMAIL, clean);
       setManualEmail('');
       if (onShowNotification) {
-        onShowNotification(`Approved director: ${clean}`);
+        onShowNotification(`Pre-approved director: ${clean}`);
       }
     } catch (err: any) {
+      setRequests((prev) => prev.filter((r) => r.uid !== pseudoUid));
       alert(`Action failed: ${err.message}`);
     } finally {
       setProcessingUid(null);
@@ -112,6 +151,10 @@ export const AdminPortalModal: React.FC<AdminPortalModalProps> = ({
                 </h2>
                 <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-white text-black font-semibold">
                   {SUPER_ADMIN_EMAIL}
+                </span>
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Live Sync
                 </span>
               </div>
               <p className="text-xs text-neutral-400">

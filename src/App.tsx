@@ -40,7 +40,7 @@ import { ShareAccessModal } from './components/ShareAccessModal';
 import { AuthPage } from './components/AuthPage';
 import { PendingApprovalView } from './components/PendingApprovalView';
 import { AdminPortalModal } from './components/AdminPortalModal';
-import { getDirectorStatus, isSuperAdmin } from './services/adminService';
+import { getDirectorStatus, isSuperAdmin, subscribeToUserDirectorStatus } from './services/adminService';
 
 const STORAGE_KEY = 'en_passant_chess_tournament_v4';
 const PARTICIPANT_KEY = 'en_passant_participant_mode';
@@ -281,6 +281,62 @@ export default function App() {
       )
   );
 
+  // Load user tournaments from cloud and initialize workspace
+  const loadUserTournamentsWorkspace = async (user: User) => {
+    try {
+      setIsSyncing(true);
+      const cloudTournaments = await listUserTournaments(user.uid, user.email);
+      const allKnown = getAllKnownTournaments();
+
+      // Merge local and cloud tournaments without losing any
+      const mergedMap = new Map<string, Tournament>();
+      allKnown.forEach((t) => {
+        if (t && t.id) mergedMap.set(t.id, t);
+      });
+      cloudTournaments.forEach((t) => {
+        if (t && t.id) {
+          const existing = mergedMap.get(t.id);
+          if (!existing || (t.updatedAt || 0) >= (existing.updatedAt || 0)) {
+            mergedMap.set(t.id, t);
+          }
+        }
+      });
+      const combined = Array.from(mergedMap.values());
+      combined.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
+      setUserTournaments(combined);
+
+      if (combined.length > 0) {
+        const lastActiveId = localStorage.getItem(`en_passant_user_active_${user.uid}`);
+        const match =
+          combined.find((t) => t.id === lastActiveId) ||
+          combined.find((t) => t.id === tournament?.id) ||
+          combined[0];
+
+        setTournament(match);
+        setSelectedRoundNumber(match.currentRoundNumber || match.rounds.length || 1);
+        localStorage.setItem(`en_passant_user_active_${user.uid}`, match.id);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(match));
+        saveToAllKnownTournaments(match);
+      } else {
+        // Brand new user with 0 tournaments: create initial isolated tournament
+        const initialTourney = createDefaultTournamentForUser(user.uid, user.email, user.displayName);
+        setTournament(initialTourney);
+        setSelectedRoundNumber(1);
+        localStorage.setItem(`en_passant_user_active_${user.uid}`, initialTourney.id);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(initialTourney));
+        saveToAllKnownTournaments(initialTourney);
+        saveTournamentToFirestore(user.uid, initialTourney, user.email, user.displayName).catch(console.warn);
+        setUserTournaments([initialTourney]);
+      }
+    } catch (err) {
+      console.error('Error fetching user cloud tournaments:', err);
+    } finally {
+      setIsSyncing(false);
+      isInitialLoadRef.current = false;
+    }
+  };
+
   // Listen for Firebase Auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -297,61 +353,9 @@ export default function App() {
         const status = await getDirectorStatus(user);
         setDirectorStatus(status);
 
-        if (status !== 'approved' && !isSuperAdmin(user.email)) {
-          setIsSyncing(false);
-          isInitialLoadRef.current = false;
-          return;
-        }
-
-        try {
-          setIsSyncing(true);
-          const cloudTournaments = await listUserTournaments(user.uid, user.email);
-          const allKnown = getAllKnownTournaments();
-          
-          // Merge local and cloud tournaments without losing any
-          const mergedMap = new Map<string, Tournament>();
-          allKnown.forEach((t) => {
-            if (t && t.id) mergedMap.set(t.id, t);
-          });
-          cloudTournaments.forEach((t) => {
-            if (t && t.id) {
-              const existing = mergedMap.get(t.id);
-              if (!existing || (t.updatedAt || 0) >= (existing.updatedAt || 0)) {
-                mergedMap.set(t.id, t);
-              }
-            }
-          });
-          const combined = Array.from(mergedMap.values());
-          combined.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-
-          setUserTournaments(combined);
-
-          if (combined.length > 0) {
-            const lastActiveId = localStorage.getItem(`en_passant_user_active_${user.uid}`);
-            const match =
-              combined.find((t) => t.id === lastActiveId) ||
-              combined.find((t) => t.id === tournament?.id) ||
-              combined[0];
-
-            setTournament(match);
-            setSelectedRoundNumber(match.currentRoundNumber || match.rounds.length || 1);
-            localStorage.setItem(`en_passant_user_active_${user.uid}`, match.id);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(match));
-            saveToAllKnownTournaments(match);
-          } else {
-            // Brand new user with 0 tournaments: create initial isolated tournament
-            const initialTourney = createDefaultTournamentForUser(user.uid, user.email, user.displayName);
-            setTournament(initialTourney);
-            setSelectedRoundNumber(1);
-            localStorage.setItem(`en_passant_user_active_${user.uid}`, initialTourney.id);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(initialTourney));
-            saveToAllKnownTournaments(initialTourney);
-            saveTournamentToFirestore(user.uid, initialTourney, user.email, user.displayName).catch(console.warn);
-            setUserTournaments([initialTourney]);
-          }
-        } catch (err) {
-          console.error('Error fetching user cloud tournaments:', err);
-        } finally {
+        if (status === 'approved' || isSuperAdmin(user.email)) {
+          await loadUserTournamentsWorkspace(user);
+        } else {
           setIsSyncing(false);
           isInitialLoadRef.current = false;
         }
@@ -366,6 +370,26 @@ export default function App() {
 
     return () => unsubscribe();
   }, []);
+
+  // Real-time listener for current user director status (auto-updates when approved by Super Admin)
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const unsub = subscribeToUserDirectorStatus(
+      currentUser,
+      async (status: 'approved' | 'pending' | 'rejected') => {
+        setDirectorStatus((prev) => {
+          if (prev !== 'approved' && status === 'approved') {
+            showNotification('Director access approved in real-time! Welcome to En Passant.');
+            loadUserTournamentsWorkspace(currentUser);
+          }
+          return status;
+        });
+      }
+    );
+
+    return () => unsub();
+  }, [currentUser?.uid]);
 
   // Helper to instantly save and sync tournament changes without debounce
   const syncTournamentImmediate = async (updatedTournament: Tournament) => {
@@ -883,17 +907,24 @@ export default function App() {
   }
 
   // ==========================================
-  // PENDING DIRECTOR APPROVAL RENDER
+  // PENDING / REJECTED DIRECTOR APPROVAL RENDER
   // Requires confirmation by Super Admin (shivgoyal0307@gmail.com)
   // ==========================================
-  if (currentUser && directorStatus === 'pending' && !isParticipant && !isSuperAdmin(currentUser.email)) {
+  if (
+    currentUser &&
+    (directorStatus === 'pending' || directorStatus === 'rejected') &&
+    !isParticipant &&
+    !isSuperAdmin(currentUser.email)
+  ) {
     return (
       <PendingApprovalView
         userEmail={currentUser.email}
+        status={directorStatus}
         onCheckStatus={async () => {
           const status = await getDirectorStatus(currentUser);
           setDirectorStatus(status);
           if (status === 'approved') {
+            await loadUserTournamentsWorkspace(currentUser);
             showNotification('Your Director access has been approved! Welcome.');
           }
         }}

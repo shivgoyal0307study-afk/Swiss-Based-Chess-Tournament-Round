@@ -36,14 +36,8 @@ service cloud.firestore {
 
     // Director Account Approval Requests
     match /director_requests/{userId} {
-      // Anyone signed in can read (needed for listing in Super Admin portal and checking status)
-      allow read: if isSignedIn();
-      // User can submit their own request; Super Admin can create pre-approvals
-      allow create: if isSignedIn();
-      // Super Admin or the requesting user can update
-      allow update: if isSignedIn() && (request.auth.token.email == 'shivgoyal0307@gmail.com' || request.auth.uid == userId);
-      // Only Super Admin can delete
-      allow delete: if isSignedIn() && request.auth.token.email == 'shivgoyal0307@gmail.com';
+      // Authenticated users can submit requests and Super Admin can manage approvals
+      allow read, write: if isSignedIn();
     }
   }
 }

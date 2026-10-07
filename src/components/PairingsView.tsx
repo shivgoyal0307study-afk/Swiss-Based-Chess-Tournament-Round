@@ -119,8 +119,8 @@ export const PairingsView: React.FC<PairingsViewProps> = ({
   const isRoundFinished = completedGamesCount === totalGamesCount;
   const isLatestRound = roundNum === latestRoundNum;
 
-  // Previous rounds locked once subsequent rounds have been generated (or read-only mode)
-  const isRoundLocked = roundNum < latestRoundNum || isReadOnly;
+  // Previous rounds locked once subsequent rounds have been generated, in read-only mode, or when tournament is finished
+  const isRoundLocked = roundNum < latestRoundNum || isReadOnly || tournament.status === 'finished';
   const isViewingPastRound = roundNum < latestRoundNum;
 
   const effectiveTotalRounds =

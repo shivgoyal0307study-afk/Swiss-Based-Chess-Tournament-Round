@@ -21,6 +21,8 @@ import {
   History,
   Share2,
   Check,
+  CheckCircle,
+  Award,
 } from 'lucide-react';
 import { exportPairingsPdf } from '../utils/pdfExport';
 
@@ -31,6 +33,7 @@ interface PairingsViewProps {
   onRecordResult: (roundNum: number, gameId: string, result: GameResult | null) => void;
   onGenerateNextRound: () => void;
   onUndoRound: (roundNum: number) => void;
+  onSubmitResults?: () => void;
   onStartTournament: () => void;
   isReadOnly?: boolean;
   standings?: StandingsRow[];
@@ -43,6 +46,7 @@ export const PairingsView: React.FC<PairingsViewProps> = ({
   onRecordResult,
   onGenerateNextRound,
   onUndoRound,
+  onSubmitResults,
   onStartTournament,
   isReadOnly = false,
   standings = [],
@@ -50,6 +54,7 @@ export const PairingsView: React.FC<PairingsViewProps> = ({
   const [playerSearchQuery, setPlayerSearchQuery] = useState('');
   const [showFideRules, setShowFideRules] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
 
   const handleCopyLiveLink = () => {
     const url = typeof window !== 'undefined' ? `${window.location.origin}/?t=${tournament.id}` : '';
@@ -123,8 +128,23 @@ export const PairingsView: React.FC<PairingsViewProps> = ({
       ? calculateFormatTotalRounds(tournament.format, tournament.players.filter((p) => p.active).length, tournament.roundsTotal)
       : tournament.roundsTotal;
 
-  const canGenerateNext = !isReadOnly && isRoundFinished && isLatestRound && roundNum < effectiveTotalRounds;
-  const isTournamentFinished = isRoundFinished && roundNum >= effectiveTotalRounds;
+  const isTournamentFinished =
+    tournament.status === 'finished' || (isRoundFinished && roundNum >= effectiveTotalRounds);
+
+  const canGenerateNext =
+    !isReadOnly &&
+    tournament.status !== 'finished' &&
+    isRoundFinished &&
+    isLatestRound &&
+    roundNum < effectiveTotalRounds;
+
+  // Option to submit official results: available after Round 3 once current round games are finished
+  const canSubmitResults =
+    !isReadOnly &&
+    tournament.status !== 'finished' &&
+    latestRoundNum >= 3 &&
+    isLatestRound &&
+    isRoundFinished;
 
   // Filter games by player search
   const filteredGames = currentRound.games.filter((game) => {
@@ -244,10 +264,11 @@ export const PairingsView: React.FC<PairingsViewProps> = ({
             <span>PDF</span>
           </button>
 
-          {!isReadOnly && isLatestRound && roundNum > 1 && (
+          {/* Undo option: strictly removed when tournament completed */}
+          {!isReadOnly && isLatestRound && roundNum > 1 && !isTournamentFinished && tournament.status !== 'finished' && (
             <button
               onClick={() => onUndoRound(roundNum)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-neutral-400 hover:text-white transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-neutral-400 hover:text-white transition-colors cursor-pointer"
               title="Undo current round pairings and results"
             >
               <RotateCcw className="w-3.5 h-3.5" />
@@ -265,9 +286,22 @@ export const PairingsView: React.FC<PairingsViewProps> = ({
             </button>
           )}
 
-          {isTournamentFinished && (
-            <div className="px-3 py-1 rounded-md bg-neutral-900 text-white border border-neutral-700 text-xs font-semibold">
-              Tournament Complete
+          {/* After Round 3: option to submit official results */}
+          {canSubmitResults && (
+            <button
+              onClick={() => setShowSubmitConfirm(true)}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold bg-[#4b4e6d] hover:bg-[#3b3d56] text-white dark:bg-[#84dcc6] dark:hover:bg-[#68cbb2] dark:text-[#11221c] rounded-lg transition-colors shadow-xs cursor-pointer"
+              title="Submit official tournament results and finalize standings"
+            >
+              <CheckCircle className="w-3.5 h-3.5" />
+              <span>Submit Results</span>
+            </button>
+          )}
+
+          {(tournament.status === 'finished' || (isTournamentFinished && !canSubmitResults)) && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
+              <CheckCircle className="w-3.5 h-3.5" />
+              <span>Results Submitted · Complete</span>
             </div>
           )}
         </div>
@@ -490,6 +524,67 @@ export const PairingsView: React.FC<PairingsViewProps> = ({
           })
         )}
       </div>
+
+      {/* Submit Official Results Confirmation Modal */}
+      {showSubmitConfirm && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-neutral-950 border border-neutral-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 flex items-center justify-center shrink-0">
+                <Award className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white">Submit Tournament Results</h3>
+                <p className="text-xs text-neutral-400">Finalize official standings after Round {roundNum}</p>
+              </div>
+            </div>
+
+            <div className="p-3 bg-neutral-900/60 border border-neutral-800 rounded-xl space-y-2 text-xs">
+              <div className="flex justify-between text-neutral-300">
+                <span className="text-neutral-400">Rounds Completed:</span>
+                <span className="font-mono font-semibold">{roundNum} of {effectiveTotalRounds}</span>
+              </div>
+              <div className="flex justify-between text-neutral-300">
+                <span className="text-neutral-400">Total Players:</span>
+                <span className="font-mono font-semibold">{tournament.players.length}</span>
+              </div>
+              {standings && standings.length > 0 && (
+                <div className="flex justify-between text-neutral-300 border-t border-neutral-800/80 pt-2">
+                  <span className="text-neutral-400">Tournament Leader:</span>
+                  <span className="font-semibold text-white truncate max-w-[180px]">
+                    {standings[0].name} ({standings[0].score.toFixed(1)} pts)
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <p className="text-[11px] text-neutral-400 leading-relaxed">
+              Submitting results marks the tournament as completed. Previous rounds will remain locked and official standings will be certified.
+            </p>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-neutral-800">
+              <button
+                type="button"
+                onClick={() => setShowSubmitConfirm(false)}
+                className="px-3.5 py-1.5 text-xs text-neutral-400 hover:text-white bg-neutral-900 hover:bg-neutral-800 rounded-lg border border-neutral-800 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSubmitConfirm(false);
+                  if (onSubmitResults) onSubmitResults();
+                }}
+                className="px-4 py-1.5 text-xs font-semibold btn-brand-accent rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
+              >
+                <CheckCircle className="w-3.5 h-3.5" />
+                <span>Confirm & Submit Results</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

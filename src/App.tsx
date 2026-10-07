@@ -721,10 +721,15 @@ export default function App() {
     }
   };
 
-  // Undo Last Round (Guarded by canEdit)
+  // Undo Last Round (Guarded by canEdit and status)
   const handleUndoRound = (roundNum: number) => {
     if (!canEdit) {
       alert('Only tournament creators and allowed arbiters can undo rounds.');
+      return;
+    }
+
+    if (tournament.status === 'finished') {
+      showNotification('Cannot undo rounds on a completed tournament.');
       return;
     }
 
@@ -744,6 +749,40 @@ export default function App() {
       setSelectedRoundNumber(Math.max(1, roundNum - 1));
       showNotification(`Round ${roundNum} undone.`);
     }
+  };
+
+  // Submit Official Tournament Results (Available after Round 3 or when tournament completes)
+  const handleSubmitResults = () => {
+    if (!canEdit) {
+      alert('Only tournament creators and allowed arbiters can submit tournament results.');
+      return;
+    }
+
+    const currentRoundsCount = tournament.rounds.length;
+    if (currentRoundsCount < 3) {
+      showNotification('At least 3 rounds must be played to submit official tournament results.');
+      return;
+    }
+
+    // Verify all games in the latest round have recorded results
+    const latestRound = tournament.rounds[currentRoundsCount - 1];
+    if (latestRound && latestRound.games.some((g) => g.result === null)) {
+      showNotification(`Please record all game results in Round ${latestRound.roundNumber} before submitting.`);
+      return;
+    }
+
+    const finalizedRounds = tournament.rounds.map((r) => ({ ...r, isCompleted: true }));
+    const nextTournament: Tournament = {
+      ...tournament,
+      rounds: finalizedRounds,
+      roundsTotal: currentRoundsCount,
+      status: 'finished',
+      updatedAt: Date.now(),
+    };
+
+    setTournament(nextTournament);
+    syncTournamentImmediate(nextTournament);
+    showNotification('Official tournament results submitted successfully! Standings finalized.');
   };
 
   const handleUpdatePlayers = (newPlayers: Player[]) => {
@@ -971,6 +1010,7 @@ export default function App() {
               onRecordResult={handleRecordResult}
               onGenerateNextRound={handleGenerateNextRound}
               onUndoRound={handleUndoRound}
+              onSubmitResults={handleSubmitResults}
               onStartTournament={handleStartTournament}
               isReadOnly={!canEdit}
               standings={standings}
